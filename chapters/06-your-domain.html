@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>6. A domain of your own · The Workbook</title>
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+<div class="page">
+  <nav class="site-nav" aria-label="Site">
+    <a class="brand" href="../index.html">The Workbook</a>
+    <a href="../index.html" aria-current="page">Chapters</a>
+    <a href="../library/index.html">Library</a>
+    <a href="../notes/index.html">Notes</a>
+  </nav>
+
+  <header class="chapter-header">
+    <div class="kicker"><span>Chapter 6</span><span class="badge">mechanic: your domain</span><span>1-2 hours, plus waiting for DNS</span></div>
+    <h1>A domain of your own</h1>
+    <p class="lede">Names are a lookup table that anyone can read and you can
+    edit. Today you get a row in it.</p>
+  </header>
+
+  <h2>Why this chapter exists</h2>
+  <p>The <code>.pages.dev</code> address works, but it is Cloudflare's name with
+  yours tucked inside. A <strong>domain</strong> is a name you rent by the year
+  (<code>example.com</code> is one) and point wherever you like. The pointing is
+  done by <strong>DNS</strong>, the Domain Name System: a public, world-wide
+  lookup table from names to the numbered addresses computers actually use. Every
+  website you have ever visited went through it in the first few milliseconds.</p>
+  <p>The name outlives this course. The site behind it will be rebuilt three
+  more times before chapter 11; the name will not change, and it will be the one
+  on your CV. That is also why William buys it, in the project's account, with
+  the settings that stop it quietly expiring.</p>
+
+  <h2>A story</h2>
+  <aside class="story">
+    <p class="when">FloatNote's DNS table, August 2026</p>
+    <p>The table for <code>floatnote.dev</code> has the rows you would expect: one
+    for the app, one for the landing page. It also has rows called
+    <code>send</code> and <code>resend._domainkey</code>. Those have nothing to do
+    with the website. They let an email service called Resend send FloatNote's
+    login codes and prove the emails are genuine. Same table, different job.
+    Delete the wrong row while tidying up and the site is fine but nobody can
+    log in. A DNS table serves more than the website, and you read a row
+    before you touch it.</p>
+  </aside>
+
+  <h2>What you will do</h2>
+  <ul>
+    <li>Watch William register the name and see what was actually bought.</li>
+    <li>Ask your laptop what it knows about the name: nothing, at first.</li>
+    <li>Attach the name to the Pages project and watch Cloudflare write two rows.</li>
+    <li>Ask again, and read the new answer.</li>
+    <li>Send <code>www</code> to the bare name, and wait for the padlock.</li>
+    <li>Ship chapter 6 with a pull request that carries the live address.</li>
+  </ul>
+
+  <h2>Do it</h2>
+  <ol class="steps">
+    <li><strong>Choose the name, before the session.</strong> Short. Easy to say
+      out loud on the phone. Letters, maybe one hyphen. A name you would be
+      happy with at 25, so probably yours, not a joke. In the Cloudflare
+      dashboard (menus as of 2026-09-02; William's click paths are in his
+      <code>for-william/dashboard-clicks.md</code>):
+      <em>Domain Registration</em> &rarr; <em>Register Domains</em>, type the name,
+      see which endings are free. Do not buy yet.</li>
+    <li><strong>Ask before.</strong> In PowerShell 7, with your real name in place
+      of the placeholder, here and in every command below:
+<pre><code>Resolve-DnsName &lt;your-domain&gt;</code></pre>
+      <p class="expect">A red error: <em>DNS name does not exist</em>. Your laptop
+      asked the lookup table and there is no row. Remember what this looks
+      like; you will see it again whenever you mistype a name.</p></li>
+    <li><strong>William registers it.</strong> His screen, his card, his name on
+      the registration if you are under 18. In the project account, not his
+      personal one: the name and the Pages project must live in the same
+      account to be joined. He turns on <em>auto-renew</em> (so it does not
+      expire while nobody is looking) and <em>WHOIS privacy</em>. WHOIS is the
+      public list of who owns which name; privacy puts the registrar's address
+      there instead of a home address. The company that sells names is a
+      <strong>registrar</strong>; here that is Cloudflare too.
+      <p class="expect">What was bought: one year of the right to say where this
+      name points. Not the name forever. That is what renewal is.</p></li>
+    <li><strong>Read the empty table.</strong> Click the new domain, then
+      <em>DNS</em> &rarr; <em>Records</em>. Five columns: <em>Type</em>,
+      <em>Name</em>, <em>Content</em>, <em>Proxy status</em>, <em>TTL</em>. Zero
+      rows, or nearly. On the domain's overview page, find the two
+      <strong>nameservers</strong>, ending in <code>ns.cloudflare.com</code>: the
+      computers that answer questions about your name. Because Cloudflare is
+      both registrar and DNS host, they are already set. With another
+      registrar you would copy those two names across by hand, and that step
+      is where most "my domain does not work" stories start.</li>
+    <li><strong>Attach the name to the site.</strong> <em>Workers &amp; Pages</em>
+      &rarr; <em>workbook</em> &rarr; <em>Custom domains</em> &rarr;
+      <em>Set up a custom domain</em>. Type the bare name, <em>Continue</em>. It
+      shows the row it is about to write; <em>Activate domain</em>. Then do it
+      again for <code>www.&lt;your-domain&gt;</code>.
+      <p class="expect">Two entries on the Custom domains page, each saying
+      <em>Initializing</em> or <em>Verifying</em>. Leave them.</p></li>
+    <li><strong>Read the table again.</strong> <em>DNS</em> &rarr; <em>Records</em>.
+      <p class="expect">Two rows of type <strong>CNAME</strong>: one named your bare
+      domain, one named <code>www</code>, both with the <code>.pages.dev</code>
+      address in the Content column, both with an orange cloud (proxied). A
+      CNAME row means "the answer for this name is whatever the answer for
+      that other name is". The bare name and <code>www</code> are two different
+      names to DNS, which is why there are two rows. Proxied means Cloudflare
+      answers with its own addresses and passes visitors through, which is
+      what makes the padlock in step 9 possible.</p></li>
+    <li><strong>Ask after.</strong>
+<pre><code>Resolve-DnsName &lt;your-domain&gt;
+Resolve-DnsName www.&lt;your-domain&gt;
+Resolve-DnsName &lt;your-domain&gt; -Type NS</code></pre>
+      <p class="expect">The first two answer with a small table: two rows of type
+      <code>A</code>, each with an address like <code>104.21.x.x</code> or
+      <code>172.67.x.x</code>. Those are Cloudflare's front door, not your files.
+      The third lists the two nameservers. If the first command still says
+      "does not exist", your laptop remembered the old answer: run
+      <code>ipconfig /flushdns</code> and ask again.</p></li>
+    <li><strong>Send www to the bare name.</strong> <em>Rules</em> &rarr;
+      <em>Redirect Rules</em> &rarr; <em>Create rule</em> &rarr; pick the template
+      <em>Redirect from WWW to Root</em> &rarr; <em>Deploy</em>. It is a
+      <strong>301</strong>, the number for "moved permanently", which browsers
+      remember. Chapter 5's story is the reason: one site, one address, or the
+      browser keeps two separate memories of it.</li>
+    <li><strong>Wait for the padlock.</strong> Back on <em>Custom domains</em>,
+      refresh until both say <em>Active</em>. The <em>s</em> in <code>https</code>
+      means the connection is encrypted, and for that the server needs a
+      <strong>certificate</strong>: a signed statement that it is allowed to
+      speak for this name. Cloudflare requests one for you; it can take
+      fifteen minutes. Then open <code>https://&lt;your-domain&gt;</code>.
+      <p class="expect">Padlock in the address bar. The Workbook, saying
+      <strong>6 of 12 done</strong>. Now type <code>www.&lt;your-domain&gt;</code>:
+      the address bar changes to the bare name on its own.</p></li>
+    <li><strong>Phone.</strong> Same address, typed by hand, on mobile data
+      rather than Wi-Fi so it goes through a different lookup table.
+      <p class="expect">6 of 12. If your phone says the name does not exist, its
+      table has not heard yet: the waiting in the title, and the first gotcha.</p></li>
+  </ol>
+
+  <h2>Check</h2>
+  <p>In PowerShell 7, all three <code>Resolve-DnsName</code> commands from step 7
+  answer with a table and no red. In a browser: <code>https://&lt;your-domain&gt;</code>
+  shows the padlock and <strong>6 of 12 done</strong>; <code>www.</code> in
+  front lands on the bare name; and the old <code>.pages.dev</code> address still
+  works, because it is the same site with two names.</p>
+
+  <h2>What can go wrong</h2>
+  <ul class="gotchas">
+    <li><b>Still "does not exist" an hour later, on one device.</b> Every lookup
+      table between you and Cloudflare keeps answers for a while, including
+      "no such name". <code>ipconfig /flushdns</code> on the laptop; on the
+      phone, switch between Wi-Fi and mobile data. Otherwise go outside for an
+      hour: changes reach the whole world in minutes to a day, which is called
+      <strong>propagation</strong>. <code>Resolve-DnsName &lt;your-domain&gt; -Server 1.1.1.1</code>
+      asks Cloudflare directly and skips every cache in between.</li>
+    <li><b>An email asks William to "verify your email address" for the
+      domain.</b> It is real, and it is the one email he must not ignore: an
+      unverified registration is switched off after fifteen days. Tell him.</li>
+    <li><b>Custom domains says the name is not in this account.</b> It was
+      registered under the wrong login. Moving a name between accounts is a
+      chore; better to notice now, before any rows exist.</li>
+    <li><b><em>Initializing</em> or <em>Pending</em> for more than fifteen
+      minutes.</b> Check the CNAME row exists and is proxied (orange cloud). If
+      it does, remove the custom domain and add it again; that restarts the
+      certificate request.</li>
+    <li><b>The browser says "not secure" or shows a certificate warning.</b> The
+      certificate is not issued yet. Wait; do not click through. A warning you
+      learn to click through is a habit that will hurt you on someone else's
+      site.</li>
+    <li><b>The bare name works but <code>www</code> does not, or the other way
+      round.</b> They are two names and each needs its own row. Step 5 was done
+      once instead of twice.</li>
+    <li><b>You chose a <code>.dev</code> name and <code>http://</code> never
+      works.</b> By design: browsers refuse plain <code>http</code> for every
+      <code>.dev</code> name. Type <code>https://</code>, or nothing at all.</li>
+  </ul>
+
+  <h2>Mark it done</h2>
+  <ol class="steps">
+    <li>A branch:
+<pre><code>git switch -c chapter-6</code></pre></li>
+    <li>In <code>index.html</code>, on the <code>data-chapter="06"</code> line, change
+      <code>data-status="todo"</code> to <code>"done"</code>.</li>
+    <li>Commit, push, and open the PR with the live address in its description.
+      From now on every PR says where the result can be seen:
+<pre><code>git add index.html; git commit -m "docs: mark chapter 6 done"; git push -u origin chapter-6
+gh pr create --title "docs: mark chapter 6 done" --body "Live at https://&lt;your-domain&gt;"</code></pre></li>
+    <li>Wait for William's approval. Merge, delete the branch on GitHub, watch
+      the deployment, then open <code>https://&lt;your-domain&gt;</code> on the
+      laptop and the phone.
+      <p class="expect">7 of 12 done, at your name. That is the proof for this
+      chapter: not the <code>.pages.dev</code> address, yours.</p></li>
+    <li>Tidy up:
+<pre><code>git switch main; git pull; git branch -d chapter-6</code></pre></li>
+    <li>One line in <a href="../notes/til.html">Today I learned</a>, at the top.
+      The date the name renews is a good line.</li>
+  </ol>
+
+  <h2>Pair with William</h2>
+  <div class="checkpoint">
+    <p>You will: read the DNS table aloud, row by row, saying what each row is
+    for. Then: why are there two CNAME rows, and what would stop working if
+    you deleted one?</p>
+    <p>William will: confirm the domain is in the project account, auto-renew
+    is on, WHOIS privacy is on, and SSL/TLS is set to <em>Full (strict)</em>;
+    then write the renewal date into his notes. He will also open the
+    <code>.pages.dev</code> address next to your name: one site, two names, and
+    only one of them is on your CV.</p>
+  </div>
+
+  <h2>Deliberately not in this chapter</h2>
+  <p class="dim small">No email at your domain, although the table could carry
+  it; the story shows what that looks like. No other record types beyond
+  reading them: A, MX and TXT rows exist and you will meet them when you need
+  them. No moving the name to an account of your own yet; ask at chapter 10,
+  when the repo is renamed to match it.</p>
+
+  <nav class="pager" aria-label="Chapter navigation"><a href="05-merge-and-ship.html">&larr; 5. Merge and ship</a><a href="07-javascript.html">7. JavaScript makes it interactive &rarr;</a></nav>
+</div>
+</body>
+</html>

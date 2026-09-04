@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1. Edit the file, refresh the browser · The Workbook</title>
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+<div class="page">
+  <nav class="site-nav" aria-label="Site">
+    <a class="brand" href="../index.html">The Workbook</a>
+    <a href="../index.html" aria-current="page">Chapters</a>
+    <a href="../library/index.html">Library</a>
+    <a href="../notes/index.html">Notes</a>
+  </nav>
+
+  <header class="chapter-header">
+    <div class="kicker"><span>Chapter 1</span><span class="badge">mechanic: edit + refresh</span><span>1 hour</span></div>
+    <h1>Edit the file, refresh the browser</h1>
+    <p class="lede">The file is the website. There is nothing in between.</p>
+  </header>
+
+  <h2>Why this chapter exists</h2>
+  <p>Most people meet websites as something that happens on a server far away.
+  This one is a folder on your laptop, and the browser is just a program that
+  draws files from it. Once that is true in your hands, every later chapter is a
+  variation: the same file, changed a more careful way, drawn somewhere further
+  away.</p>
+
+  <h2>A story</h2>
+  <aside class="story">
+    <p class="when">FloatNote, August 2026</p>
+    <p>FloatNote has a docs page that promises "every example below runs through
+    the real calculator, live". Someone added examples about cryptocurrency to
+    the file. The page did not load crypto prices. So the examples sat there
+    blank, and the page was lying. The file said one thing; the screen said
+    another. Everything in this workbook is about keeping those two the same,
+    and today they are one refresh apart.</p>
+  </aside>
+
+  <h2>What you will do</h2>
+  <ul>
+    <li>Change text and see it change.</li>
+    <li>Change a colour and see it change everywhere.</li>
+    <li>Break the page on purpose and see how the browser copes.</li>
+    <li>Mark this chapter done by hand.</li>
+  </ul>
+
+  <h2>Do it</h2>
+  <ol class="steps">
+    <li><strong>Open the folder in Cursor.</strong> In PowerShell 7:
+<pre><code>cursor ~\dev\workbook</code></pre>
+      The left side lists the files. Click <code>index.html</code>.</li>
+    <li><strong>Open the same file in a browser.</strong> Open File Explorer, go to
+      <code>C:\Users\&lt;you&gt;\dev\workbook</code>, double-click <code>index.html</code>.
+      Put the browser and Cursor side by side. The address bar starts with
+      <code>file:///</code>: the browser is reading your disk.</li>
+    <li><strong>Change some text.</strong> In Cursor, find the line that starts
+      <code>&lt;p class="lede"&gt;</code>. Change any word. Press <kbd>Ctrl</kbd>+<kbd>S</kbd>.
+      In the browser press <kbd>F5</kbd>.
+      <p class="expect">Your word is on the page. If not: did you save? The dot on the tab means unsaved.</p></li>
+    <li><strong>Change a colour.</strong> Open <code>styles.css</code>. Near the top,
+      find <code>--accent: #2733c9;</code>. Change it to <code>--accent: #c0392b;</code>.
+      Save, refresh.
+      <p class="expect">Every link and every step number changed at once. One line
+      controls all of them; that is what the <code>:root</code> block is for. Put it back.</p></li>
+    <li><strong>Break it.</strong> Back in <code>index.html</code>, find
+      <code>&lt;h1&gt;The Workbook&lt;/h1&gt;</code>. Delete the <code>&gt;</code> after <code>h1</code>
+      so it reads <code>&lt;h1The Workbook&lt;/h1&gt;</code>. Save, refresh.
+      <p class="expect">The title is probably gone or the page looks odd, but the
+      browser did not crash and the rest is still there. Browsers forgive HTML;
+      they will not forgive JavaScript in chapter 7. Put the <code>&gt;</code> back.</p></li>
+    <li><strong>Look at the list.</strong> Find the line that starts
+      <code>&lt;li data-chapter="01"</code>. Read it slowly. <code>data-status="todo"</code>
+      is a label on that item. Now open <code>styles.css</code> and search for
+      <code>data-status</code>. Those three CSS rules are the entire progress system:
+      an item labelled done gets a filled box, and the counter counts them.</li>
+  </ol>
+
+  <h2>Check</h2>
+  <p>With the browser open on <code>index.html</code>: the counter under the list
+  says <strong>1 of 12 done</strong> (chapter 0, which William marked). The lede
+  says your word. The accent colour is blue again.</p>
+
+  <h2>What can go wrong</h2>
+  <ul class="gotchas">
+    <li><b>Refresh changes nothing.</b> Not saved (the tab shows a dot), or the
+      browser is showing a different copy of the file. Check the address bar
+      contains <code>dev/workbook</code>, not Downloads.</li>
+    <li><b>You edited the wrong chapter's line.</b> The <code>data-chapter</code>
+      number is on the same line as the attribute. Undo with <kbd>Ctrl</kbd>+<kbd>Z</kbd>.</li>
+    <li><b>Cursor offers to complete what you type.</b> That is Tab completion.
+      Press <kbd>Esc</kbd> to ignore it this chapter; chapter 2 is where you start
+      using it.</li>
+    <li><b>The page has no styling at all.</b> The <code>&lt;link rel="stylesheet"&gt;</code>
+      line near the top was changed or <code>styles.css</code> was moved. Undo.</li>
+  </ul>
+
+  <h2>Mark it done</h2>
+  <ol class="steps">
+    <li>In <code>index.html</code>, on the <code>data-chapter="01"</code> line, change
+      <code>data-status="todo"</code> to <code>data-status="done"</code>.</li>
+    <li>Save. Refresh.
+      <p class="expect">Filled box next to chapter 1. Counter says 2 of 12 done.</p></li>
+    <li>Open <a href="../library/index.html">the Library</a> in Cursor
+      (<code>library/index.html</code>). Pick one item you have actually looked at.
+      Change its <code>data-seen="no"</code> to <code>"yes"</code>. Save, refresh
+      that page: the <em>new</em> badge is gone and the count dropped by one.</li>
+    <li>Make your first note: copy <code>notes/_template.html</code> to
+      <code>notes/2026-MM-DD-the-file-is-the-site.html</code> (right-click the file
+      in Cursor, Copy, Paste, rename). Fill in the three headings, even one line
+      each. Add a line for it under <em>Pages</em> in <code>notes/index.html</code>;
+      there is a commented-out example to copy.</li>
+    <li>One line in <a href="../notes/til.html">Today I learned</a>, at the top.</li>
+  </ol>
+
+  <h2>Pair with William</h2>
+  <div class="checkpoint">
+    <p>You will: explain what <code>data-status</code> is, in your own words, and
+    show the three CSS rules that use it.</p>
+    <p>William will: open the terminal in Cursor (<kbd>Ctrl</kbd>+<kbd>`</kbd>), type
+    <code>git status</code>, and not explain it. Look at the letters next to the
+    file names. You get to that in two chapters.</p>
+  </div>
+
+  <h2>Deliberately not in this chapter</h2>
+  <p class="dim small">No AI. Not yet. The point of chapter 2 is to judge what
+  the AI does, and you cannot judge an edit you have never made yourself.</p>
+
+  <nav class="pager" aria-label="Chapter navigation"><a href="00-setup.html">&larr; 0. Set up the machine</a><a href="02-ask-the-ai.html">2. Ask the AI, review the diff &rarr;</a></nav>
+</div>
+</body>
+</html>

@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>7. JavaScript makes it interactive · The Workbook</title>
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+<div class="page">
+  <nav class="site-nav" aria-label="Site">
+    <a class="brand" href="../index.html">The Workbook</a>
+    <a href="../index.html" aria-current="page">Chapters</a>
+    <a href="../library/index.html">Library</a>
+    <a href="../notes/index.html">Notes</a>
+  </nav>
+
+  <header class="chapter-header">
+    <div class="kicker"><span>Chapter 7</span><span class="badge">mechanic: JavaScript</span><span>3-4 hours</span></div>
+    <h1>JavaScript makes it interactive</h1>
+    <p class="lede">The page can change itself. The browser can remember. And
+    remembering on one device is not the same as sharing.</p>
+  </header>
+
+  <h2>Why this chapter exists</h2>
+  <p>So far every change to the site has been a change to a file, made by you,
+  in Cursor. <strong>JavaScript</strong> is the language browsers run, and it
+  lets a page change itself after it has loaded: add a checkbox, react to a
+  click, remember the click for next time. Today you write a small program
+  that does exactly that, and you find out where the browser keeps what it
+  remembers.</p>
+  <p>The catch is the last line of the lede. What this browser remembers stays
+  in this browser; your phone will not know. Chapters 8 and 9 fix that
+  properly. This chapter exists so you feel the problem first.</p>
+
+  <h2>A story</h2>
+  <aside class="story">
+    <p class="when">FloatNote's CLAUDE.md, August 2026</p>
+    <p>FloatNote saves its settings in a folder under <code>AppData</code>. To
+    test that, William started the app from inside another program, the
+    Claude desktop app. The app said the settings were saved. The file was not
+    in the folder. Windows had quietly redirected the writes somewhere else,
+    because of how that other program is packaged, and nothing told anyone.
+    The rule he wrote down afterwards has a short general version: "saved"
+    always means "saved <em>somewhere</em>", and the somewhere is a question
+    worth asking. Step 10 asks it of your browser.</p>
+  </aside>
+
+  <h2>What you will do</h2>
+  <ul>
+    <li>Make a file the browser runs, and prove that where it is loaded matters.</li>
+    <li>Use the console, the Elements tab and one breakpoint as tools.</li>
+    <li>Write the counting function yourself; let the AI write the remembering part; review it.</li>
+    <li>Add five CSS rules, all from existing tokens.</li>
+    <li>Find your ticks on your disk, then find that your phone cannot see them.</li>
+  </ul>
+
+  <h2>Do it</h2>
+  <ol class="steps">
+    <li><strong>A file the browser runs.</strong> In Cursor, at the top level of
+      the repo next to <code>index.html</code>, make a new file
+      <code>script.js</code> containing one line:
+<pre><code>console.log("hello from script.js");</code></pre>
+      In <code>index.html</code>, add this as the last line inside
+      <code>&lt;body&gt;</code>, just above <code>&lt;/body&gt;</code>:
+<pre><code>&lt;script src="script.js"&gt;&lt;/script&gt;</code></pre>
+      Save both. Refresh the browser, press <kbd>F12</kbd>, click <em>Console</em>.
+      <p class="expect"><code>hello from script.js</code>. <kbd>F12</kbd> opens
+      <strong>DevTools</strong>, the browser's toolbox. The console is where a page
+      talks to you and where errors appear. The tag means "run this file, here,
+      now".</p></li>
+    <li><strong>Prove that "here" matters.</strong> Add a second line:
+<pre><code>console.log(document.querySelector(".chapters"));</code></pre>
+      Refresh: the console prints the <code>&lt;ol&gt;</code>, and hovering it
+      lights up the list. Now cut the <code>&lt;script&gt;</code> tag and paste it
+      inside <code>&lt;head&gt;</code>. Refresh.
+      <p class="expect"><code>null</code>. The browser reads the file top to
+      bottom and ran your script before the list existed. Put the tag back at
+      the end of <code>&lt;body&gt;</code>. Every "cannot read properties of null"
+      you will ever see is a version of this.</p></li>
+    <li><strong>Change the page without changing the file.</strong> DevTools,
+      <em>Elements</em> tab. Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd>,
+      click chapter 7 in the list: its <code>&lt;li&gt;</code> is highlighted with
+      <code>data-status="todo"</code>. Double-click <code>todo</code>, type
+      <code>done</code>, <kbd>Enter</kbd>.
+      <p class="expect">The box fills, the counter says 8, and <code>index.html</code>
+      did not change. Refresh: back to 7. That is what your script will do,
+      and then remember.</p></li>
+    <li><strong>Write the counting function yourself.</strong> Replace both lines
+      in <code>script.js</code> with this. Type it; do not paste.
+<pre><code>function countDone(items) {
+  let done = 0;
+  for (const li of items) {
+    if (li.dataset.status === "done") {
+      done = done + 1;
+    }
+  }
+  return done;
+}</code></pre>
+      Refresh, then in the console type:
+<pre><code>countDone(document.querySelectorAll(".chapters li"))</code></pre>
+      <p class="expect"><code>7</code>. Read it back: a <strong>function</strong>
+      is a named recipe with an input (<code>items</code>). <code>let done = 0</code>
+      makes a box called <code>done</code> holding 0. <code>for ... of</code> visits
+      each item. <code>li.dataset.status</code> is the <code>data-status</code>
+      attribute, read from JavaScript. <code>===</code> means "exactly equal".
+      <code>return</code> hands the answer back.</p></li>
+    <li><strong>Let the AI write the remembering part, then review it.</strong>
+      In Cursor chat, with <code>script.js</code> open:
+<pre><code>Add two functions to script.js. load(key) returns the object stored in
+localStorage under key, or {} if there is nothing there or it is not valid
+JSON. save(key, value) stores value as JSON text. Plain JavaScript, no
+modules, no fetch, and change nothing else in the file.</code></pre>
+      <strong>localStorage</strong> is a small drawer the browser keeps per site,
+      holding text under names. <strong>JSON</strong> is a way of writing an
+      object as text so it fits in the drawer. Read the diff. Predictions: it
+      may put <code>export</code> in front of the functions, suggest "a cleaner
+      approach with a JSON file and <code>fetch</code>", or ask to add
+      <code>type="module"</code> to the tag. Reject all three; the first gotcha
+      says why. Compare what you accepted with <code>load</code> and
+      <code>save</code> in step 6 and fix any difference.</li>
+    <li><strong>Type the rest.</strong> This is the complete file, as it should
+      read when you are finished. Yours may differ in small ways as long as it
+      does the same things.
+<pre><code>// script.js, from chapter 7. Loaded by a &lt;script&gt; tag at the very end of
+// &lt;body&gt; on index.html and library/index.html, so everything it looks for
+// already exists when it runs.
+//
+// It does three things: puts a checkbox on every chapter and every Library
+// item, remembers your ticks in this browser, and draws a progress bar.
+// The data-status and data-seen attributes stay the truth for CSS; this
+// script reads them, lets you change them, and writes them back.
+
+const PROGRESS_KEY = "workbook.progress.v1";
+const SEEN_KEY = "workbook.seen.v1";
+
+// ---- remembering ----------------------------------------------------------
+// localStorage stores strings only, so objects go in and out as JSON text.
+
+function load(key) {
+  try {
+    const text = localStorage.getItem(key);
+    const value = text ? JSON.parse(text) : {};
+    return value &amp;&amp; typeof value === "object" ? value : {};
+  } catch (error) {
+    console.warn("Could not read " + key, error);
+    return {};
+  }
+}
+
+function save(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.warn("Could not save " + key, error);
+  }
+}
+
+// ---- one checkbox, at the start of a list item ----------------------------
+
+function addCheckbox(li, checked, onChange) {
+  const box = document.createElement("input");
+  box.type = "checkbox";
+  box.checked = checked;
+  box.title = "Remembered by this browser only";
+  box.addEventListener("change", function () {
+    onChange(box.checked);
+  });
+  li.prepend(box);
+  return box;
+}
+
+// ---- the chapter list (index.html) ----------------------------------------
+
+function countDone(items) {
+  let done = 0;
+  for (const li of items) {
+    if (li.dataset.status === "done") {
+      done = done + 1;
+    }
+  }
+  return done;
+}
+
+function drawBar(fill, items) {
+  const percent = items.length === 0 ? 0 : Math.round((countDone(items) / items.length) * 100);
+  fill.style.width = percent + "%";
+}
+
+function setUpChapters() {
+  const list = document.querySelector(".chapters");
+  if (!list) {
+    return; // not this page
+  }
+  const items = list.querySelectorAll("li[data-chapter]");
+  const saved = load(PROGRESS_KEY);
+
+  const bar = document.createElement("div");
+  bar.className = "bar";
+  const fill = document.createElement("div");
+  fill.className = "bar-fill";
+  bar.append(fill);
+  list.after(bar);
+
+  for (const li of items) {
+    const id = li.dataset.chapter;
+    const remembered = saved[id];
+    if (remembered === "done" || remembered === "todo") {
+      li.dataset.status = remembered; // this browser's note beats the file
+    }
+    addCheckbox(li, li.dataset.status === "done", function (ticked) {
+      li.dataset.status = ticked ? "done" : "todo";
+      saved[id] = li.dataset.status;
+      save(PROGRESS_KEY, saved);
+      drawBar(fill, items);
+    });
+  }
+  drawBar(fill, items);
+}
+
+// ---- the Library (library/index.html) -------------------------------------
+
+function setUpLibrary() {
+  const items = document.querySelectorAll(".library li[data-seen]");
+  if (items.length === 0) {
+    return; // not this page
+  }
+  const saved = load(SEEN_KEY);
+
+  for (const li of items) {
+    const link = li.querySelector("a");
+    if (!link) {
+      continue;
+    }
+    const id = link.getAttribute("href"); // the address is the item's name
+    const remembered = saved[id];
+    if (remembered === "yes" || remembered === "no") {
+      li.dataset.seen = remembered;
+    }
+    addCheckbox(li, li.dataset.seen === "yes", function (ticked) {
+      li.dataset.seen = ticked ? "yes" : "no";
+      saved[id] = li.dataset.seen;
+      save(SEEN_KEY, saved);
+    });
+  }
+}
+
+setUpChapters();
+setUpLibrary();</code></pre>
+      The new words: <code>document.createElement</code> makes an element that is
+      not on the page yet; <code>li.prepend</code> puts it at the start of the
+      item; <code>addEventListener("change", ...)</code> means "when this changes,
+      run this"; <code>list.after(bar)</code> puts the bar under the list;
+      <code>fill.style.width</code> is the one place this site sets a style from
+      code, because the width is a number JavaScript works out. Refresh.
+      <p class="expect">Checkboxes at the start of every chapter line, badly
+      placed for now, and a thin empty strip under the counter. No red in the
+      console. If there is red, read it: it names the line.</p></li>
+    <li><strong>Five CSS rules.</strong> Add this at the very end of
+      <code>styles.css</code>. Every colour and size is an existing token.
+<pre><code>/* ---- chapter 7: checkboxes and the progress bar --------------------------- */
+.chapters li:has(&gt; input[type="checkbox"])::before { display: none; }
+.chapters li &gt; input[type="checkbox"] { margin: 0; accent-color: var(--done); }
+.library li &gt; input[type="checkbox"] { margin: 0 var(--sp-2) 0 0; accent-color: var(--done); }
+.bar {
+  height: var(--sp-2);
+  margin-top: var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--field);
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  border-radius: var(--radius-pill);
+}</code></pre>
+      The first rule hides the CSS-drawn box only when a checkbox is present,
+      so if the script ever fails the box comes back. The next two tidy the
+      checkbox and give it the "done" colour. The last two are the bar and
+      its filling. Refresh.
+      <p class="expect">A checkbox where each box was, seven ticked, and a bar
+      58% full under "7 of 12 done". Tick chapter 7: the bar grows, the counter
+      says 8. Refresh: still 8. The browser remembered.</p></li>
+    <li><strong>The Library too.</strong> In <code>library/index.html</code>, the
+      same tag just above <code>&lt;/body&gt;</code>, except the file is one folder
+      up:
+<pre><code>&lt;script src="../script.js"&gt;&lt;/script&gt;</code></pre>
+      <p class="expect">Refresh the Library: a checkbox before every item. Tick
+      one: its <em>new</em> badge goes and the count drops. Refresh: it stays.
+      Nothing appeared twice on either page, because the script checks which
+      page it is on before doing anything.</p></li>
+    <li><strong>One breakpoint.</strong> DevTools, <em>Sources</em> tab, click
+      <code>script.js</code> in the left list. Find
+      <code>saved[id] = li.dataset.status;</code> inside <code>setUpChapters</code> and
+      click its line number; it turns blue. Tick a chapter.
+      <p class="expect">The page freezes on that line. A <strong>breakpoint</strong>
+      is a "stop here" mark. Hover over <code>saved</code> to see the object being
+      remembered, and over <code>id</code>. <kbd>F8</kbd> continues. Click the
+      number again to remove it. This beats <code>console.log</code> as soon as a
+      program does more than one thing.</p></li>
+    <li><strong>Where is it kept?</strong> DevTools, <em>Application</em> tab,
+      <em>Local Storage</em> on the left, the <code>file://</code> entry.
+      <p class="expect">Two names, <code>workbook.progress.v1</code> and
+      <code>workbook.seen.v1</code>, each holding JSON text. Right-click one,
+      delete it, refresh: those ticks are gone. And "there" is a real folder.
+      In PowerShell 7, for Edge (for Chrome, swap <code>Microsoft\Edge</code> for
+      <code>Google\Chrome</code>):</p>
+<pre><code>Get-ChildItem "$env:LOCALAPPDATA\Microsoft\Edge\User Data\Default\Local Storage\leveldb"</code></pre>
+      <p class="expect">A handful of files with odd names: the browser's own small
+      database, your ticks in it next to every other site's drawer. Not
+      readable by eye, but on your disk, in your user folder, and nowhere
+      else.</p></li>
+  </ol>
+
+  <h2>Check</h2>
+  <p>Open <code>index.html</code> and <code>library/index.html</code> from File
+  Explorer, each with the Console tab open: no red on either. Chapter list:
+  twelve checkboxes, the drawn boxes gone, a bar under the counter. Tick
+  chapter 7, refresh: still ticked, 8 of 12, bar longer. Library: tick one,
+  refresh: still ticked. The Application tab shows the two <code>workbook.</code>
+  names. <code>git status</code> lists exactly four files: <code>script.js</code>,
+  <code>styles.css</code>, <code>index.html</code>, <code>library/index.html</code>.</p>
+
+  <h2>What can go wrong</h2>
+  <ul class="gotchas">
+    <li><b>The AI suggests <code>type="module"</code>, <code>import</code>, or
+      <code>fetch("progress.json")</code>.</b> All three are dead on a page opened
+      from a file: browsers refuse to load modules or fetch over
+      <code>file://</code> for safety. The page would work on the live site and
+      break on your laptop, the worst kind of bug. Chapter 8 brings a real
+      server; then modules are allowed.</li>
+    <li><b>"Uncaught TypeError: Cannot read properties of null".</b> A selector
+      found nothing: a misspelled class, or the script ran before the page
+      existed (step 2). Check the tag is last in <code>&lt;body&gt;</code>, then
+      check the spelling against the Elements tab.</li>
+    <li><b>Nothing happens and no error.</b> The script did not load. The
+      <em>Network</em> tab shows it in red. The path is <code>script.js</code> from
+      <code>index.html</code> and <code>../script.js</code> from the Library.</li>
+    <li><b>Ticks vanish on refresh and the Application tab is empty.</b> A
+      private window, a browser set to clear site data on close, or one that
+      blocks storage on <code>file://</code>. Use Edge or Chrome, normal window.</li>
+    <li><b>Every page opened from a file shares one drawer.</b> The browser keeps
+      one localStorage for <em>all</em> <code>file://</code> pages, so another
+      project saving under the name <code>progress</code> would collide with this
+      one. Hence <code>workbook.</code> at the front, and <code>.v1</code> at the end
+      so a later chapter can change the shape without misreading old data.</li>
+    <li><b>Works on the live site but not from the file, or the other way
+      round.</b> Always check both. They are different origins (chapter 5's
+      story) with different drawers; ticks on one do not appear on the other,
+      and that is correct.</li>
+    <li><b>The AI rewrites the whole file when you ask for one function.</b>
+      Reject. Ask again naming the function and saying "change nothing else".</li>
+    <li><b>Checkboxes appear but the drawn boxes are still there.</b> The first
+      CSS rule is missing or misspelled.</li>
+  </ul>
+
+  <h2>Mark it done</h2>
+  <ol class="steps">
+    <li>Tick the chapter 7 checkbox. Refresh.
+      <p class="expect">Still ticked, 8 of 12, bar two-thirds full.</p></li>
+    <li>Open the live site on your phone.
+      <p class="expect">7 of 12, and no checkboxes at all. Two truths: what the
+      file says, which everyone sees, and what this one browser remembers,
+      which only it sees. The pull request ships the file's version.</p></li>
+    <li>Commit the feature as its own slice, before touching the attribute:
+<pre><code>git switch -c chapter-7
+git add script.js styles.css index.html library/index.html
+git commit -m "feat: checkboxes and a progress bar, remembered by the browser"</code></pre></li>
+    <li>Now the attribute: in <code>index.html</code>, on the
+      <code>data-chapter="07"</code> line, <code>todo</code> to <code>done</code>. Then:
+<pre><code>git add index.html; git commit -m "docs: mark chapter 7 done"</code></pre>
+      Two commits, two reasons; William can read them separately.</li>
+    <li>Push and open the PR with the live address in the description:
+<pre><code>git push -u origin chapter-7
+gh pr create --title "feat: checkboxes and a progress bar" --body "Live at https://&lt;your-domain&gt;"</code></pre>
+      This is your first pull request with code in it, and William reviews it
+      like code: expect at least one comment. Answer or change, push again,
+      wait for the approval.</li>
+    <li>Merge, delete the branch on GitHub, watch the deployment, open your
+      domain on the laptop and the phone.
+      <p class="expect">Checkboxes and 8 of 12 on both. This time the phone
+      agrees, because the file says so.</p></li>
+    <li>On the phone, tick chapter 8 and refresh: still ticked. Refresh the
+      laptop: not ticked.
+      <p class="expect">Two truths again, the other way round. Untick it;
+      chapter 8 is not done. This is the exact problem chapter 9 solves.</p></li>
+    <li>Tidy up:
+<pre><code>git switch main; git pull; git branch -d chapter-7</code></pre></li>
+    <li>One line in <a href="../notes/til.html">Today I learned</a>, at the top.</li>
+  </ol>
+
+  <h2>Pair with William</h2>
+  <div class="checkpoint">
+    <p>You will: explain why the phone and the laptop disagreed, twice, and
+    which of the two truths the pull request changed. Then walk him through
+    <code>countDone</code> line by line.</p>
+    <p>William will: ask you to break the script on purpose. On a new branch,
+    one typo in <code>script.js</code>; open the page: red in the console, no
+    checkboxes, no bar. But the drawn boxes are back and the counter still
+    says 8 of 12. A page whose JavaScript failed is still a page; that is
+    <strong>graceful degradation</strong>, and the first CSS rule bought it.
+    Open a PR for the typo and watch the check turn green: it looks for
+    secrets, not for working code. Chapter 8 answers that. Then fix it, and
+    talk about why the feature and the attribute were two commits: small
+    slices are easier to review and easier to undo.</p>
+  </div>
+
+  <h2>Deliberately not in this chapter</h2>
+  <p class="dim small">No framework and no library: the whole program is one
+  file you can read in five minutes. No <code>fetch</code> and no server: the
+  phone disagreeing with the laptop is the lesson, and chapter 9 fixes it
+  properly. No TypeScript until chapter 8. Five CSS rules and not one more;
+  the bar does not animate.</p>
+
+  <nav class="pager" aria-label="Chapter navigation"><a href="06-your-domain.html">&larr; 6. A domain of your own</a><a href="08-build-step.html">8. A build step &rarr;</a></nav>
+</div>
+</body>
+</html>

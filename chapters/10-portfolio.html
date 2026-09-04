@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>10. Restructure into a portfolio · The Workbook</title>
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+<div class="page">
+  <nav class="site-nav" aria-label="Site">
+    <a class="brand" href="../index.html">The Workbook</a>
+    <a href="../index.html" aria-current="page">Chapters</a>
+    <a href="../library/index.html">Library</a>
+    <a href="../notes/index.html">Notes</a>
+  </nav>
+
+  <header class="chapter-header">
+    <div class="kicker"><span>Chapter 10</span><span class="badge">mechanic: portfolio</span><span>4-6 hours</span></div>
+    <h1>Restructure into a portfolio</h1>
+    <p class="lede">Move everything one folder down without breaking a single
+    link, then put your name on the front door.</p>
+  </header>
+
+  <h2>Why this chapter exists</h2>
+  <p>The workbook was never meant to be the whole site. It is one project, the
+  first one, and the site should outlive it. Today the home page becomes yours,
+  the workbook moves to <code>/workbook/</code>, and the repo gets your domain
+  as its name.</p>
+  <p>The skill is not the new page. It is moving code that already works,
+  proving nothing broke, and leaving a forwarding address for every old link.
+  Real projects do this constantly and it goes wrong constantly, because a move
+  looks harmless and touches everything.</p>
+
+  <h2>A story</h2>
+  <aside class="story">
+    <p class="when">William's dev-setup repo, August 2026</p>
+    <p>William renamed a whole repository: the rollout registry became
+    <code>macro-loop/rung</code>. GitHub forwards the old name, so nothing
+    <em>seemed</em> to need changing. He checked every pointer anyway: the
+    clone on each machine, a skill that cited the old path, a doc that linked
+    it. Two were stale. Nothing broke silently, because he assumed something
+    would. That assumption is the whole of this chapter.</p>
+  </aside>
+
+  <h2>What you will do</h2>
+  <ul>
+    <li>Move the workbook pages and their script under <code>workbook/</code>.</li>
+    <li>Fix every path the move broke, with search and replace, not by hand.</li>
+    <li>Watch a test fail because of the move, then fix the test.</li>
+    <li>Add a redirect so old chapter links still work.</li>
+    <li>Write the new home page, in your own words.</li>
+    <li>Rename the repo to your domain.</li>
+  </ul>
+
+  <h2>Do it</h2>
+  <ol class="steps">
+    <li><strong>Start green.</strong> Terminal in <code>~\dev\workbook</code>:
+<pre><code>git switch main; git pull; git switch -c chapter-10; npm test</code></pre>
+      <p class="expect">Every suite passes. If it does not, fix that first; a move on
+      top of a failing test hides which change broke what.</p></li>
+    <li><strong>Move the files with git, not Explorer.</strong> <code>git mv</code>
+      records a rename; dragging in Explorer looks to git like a delete and a
+      new file, and the history of the page is lost.
+<pre><code>New-Item -ItemType Directory workbook, src\workbook | Out-Null
+git mv index.html workbook\index.html
+git mv chapters workbook\chapters
+git mv src\main.ts src\workbook\main.ts
+git status</code></pre>
+      <p class="expect">Fourteen lines of <code>renamed:</code>, in green.</p></li>
+    <li><strong>Fix the imports in the moved script.</strong> Open
+      <code>src/workbook/main.ts</code>. It is one folder deeper now, so every
+      import of a sibling needs one more <code>..</code>. Change
+      <code>from "./progress"</code> to <code>from "../progress"</code>, and the
+      same for <code>./chapters</code> and <code>./library</code>. Then find where
+      a chapter link is built (search for <code>chapters/</code>) and make it
+      <code>/workbook/chapters/</code>: root-relative, starting with a slash,
+      because the page and the chapters are no longer in the same folder.</li>
+    <li><strong>Fix the paths in the moved pages with one search.</strong>
+      Cursor: <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd> opens Replace in Files.
+      Do these four, in this order, and click the replace-all icon each time.
+      Read the file list before each one: every hit should be under
+      <code>workbook/</code>.
+      <table>
+        <thead><tr><th scope="col">Find</th><th scope="col">Replace with</th></tr></thead>
+        <tbody>
+          <tr><td><code>href="../styles.css"</code></td><td><code>href="/styles.css"</code></td></tr>
+          <tr><td><code>href="../library/index.html"</code></td><td><code>href="/library/index.html"</code></td></tr>
+          <tr><td><code>href="../notes/index.html"</code></td><td><code>href="/notes/index.html"</code></td></tr>
+          <tr><td><code>href="../index.html"</code></td><td><code>href="/workbook/index.html"</code></td></tr>
+        </tbody>
+      </table>
+      Then in <code>workbook/index.html</code> and <code>library/index.html</code>,
+      change the script line to
+      <code>&lt;script type="module" src="/src/workbook/main.ts"&gt;&lt;/script&gt;</code>,
+      and in every page's nav change the brand link
+      <code>href="/workbook/index.html"</code> on the <em>first</em> <code>&lt;a&gt;</code>
+      back to <code>href="/"</code> with your name as its text. The Chapters
+      link stays pointing at <code>/workbook/index.html</code>.
+      <p class="expect">Root-relative paths only work when a server is involved,
+      which since chapter 8 is always. This is the day <code>file://</code>
+      would have stopped working anyway.</p></li>
+    <li><strong>Tell Vite where the pages went.</strong> In
+      <code>vite.config.ts</code>, replace the block that builds
+      <code>pages</code> with:
+<pre><code>const pages: Record&lt;string, string&gt; = {
+  index: "index.html",
+  workbook: "workbook/index.html",
+  library: "library/index.html",
+};
+for (const f of readdirSync("workbook/chapters")) {
+  if (f.endsWith(".html")) pages[f.slice(0, -5)] = `workbook/chapters/${f}`;
+}</code></pre>
+      In the notes plugin's <code>page()</code> template, the nav's Chapters link
+      becomes <code>/workbook/index.html</code> and the brand link becomes
+      <code>/</code> with your name.</li>
+    <li><strong>Leave a forwarding address.</strong> Cloudflare Pages reads a
+      file called <code>_redirects</code> from the root of what it serves. Vite
+      copies anything in <code>public/</code> to that root untouched.
+<pre><code>New-Item -ItemType Directory public | Out-Null
+Set-Content -Path public\_redirects -Value "/chapters/* /workbook/chapters/:splat 301"</code></pre>
+      <p class="expect">One line. <code>:splat</code> means "whatever came after";
+      <code>301</code> means "moved permanently", which browsers and search
+      engines remember.</p></li>
+    <li><strong>Run the tests and read the failure.</strong>
+<pre><code>npm test</code></pre>
+      <p class="expect"><code>chapters.test.ts</code> fails: it cannot find the
+      <code>chapters</code> folder, because you moved it. This is the test doing
+      its job. A test that still passed after you moved the thing it checks would
+      be checking nothing.</p></li>
+    <li><strong>Fix the test.</strong> In <code>src/chapters.test.ts</code>, the
+      directory line and the link check change:
+<pre><code>-const dir = join(import.meta.dirname, "..", "chapters");
++const root = join(import.meta.dirname, "..");
++const dir = join(root, "workbook", "chapters");
+ ...
+-    ok(`${f} links to ${m[1]}`, existsSync(join(dir, m[1])));
++    // A link starting with / is from the site root; anything else is from
++    // the chapter's own folder.
++    const target = m[1].startsWith("/") ? join(root, m[1]) : join(dir, m[1]);
++    ok(`${f} links to ${m[1]}`, existsSync(target));</code></pre>
+<pre><code>npm test; npm run build</code></pre>
+      <p class="expect">All green, and <code>dist\workbook\chapters</code> holds
+      twelve files: <code>(Get-ChildItem dist\workbook\chapters).Count</code>
+      prints 12. <code>dist\_redirects</code> exists.</p></li>
+    <li><strong>Write the home page.</strong> Create a new <code>index.html</code>
+      at the root. Start from this and change every line that is about you:
+<pre><code>&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+&lt;meta charset="utf-8"&gt;
+&lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;
+&lt;title&gt;Your Name&lt;/title&gt;
+&lt;link rel="stylesheet" href="/styles.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div class="page"&gt;
+  &lt;nav class="site-nav" aria-label="Site"&gt;
+    &lt;a class="brand" href="/" aria-current="page"&gt;Your Name&lt;/a&gt;
+    &lt;a href="/workbook/index.html"&gt;Workbook&lt;/a&gt;
+    &lt;a href="/library/index.html"&gt;Library&lt;/a&gt;
+    &lt;a href="/notes/index.html"&gt;Notes&lt;/a&gt;
+  &lt;/nav&gt;
+
+  &lt;h1&gt;Your Name&lt;/h1&gt;
+  &lt;p class="lede"&gt;One sentence about you: where you are, what you are
+  building, what you want to build next. Replace this line first.&lt;/p&gt;
+
+  &lt;p&gt;This site is hand-written HTML, CSS and TypeScript, built with Vite and
+  served by Cloudflare Pages. The source is on
+  &lt;a href="https://github.com/macro-loop-dev/workbook"&gt;GitHub&lt;/a&gt;. Every page on it
+  went through a pull request, and the progress on the workbook is saved by a
+  small server I wrote.&lt;/p&gt;
+
+  &lt;h2&gt;Projects&lt;/h2&gt;
+  &lt;ul class="notes-list"&gt;
+    &lt;li&gt;&lt;a href="/workbook/index.html"&gt;The Workbook&lt;/a&gt; &lt;span class="dim small"&gt;A
+      twelve-chapter coding course that is also the website it teaches. I built
+      it while doing it.&lt;/span&gt;&lt;/li&gt;
+    &lt;!-- Next project: copy the line above. One line, one link, one reason. --&gt;
+  &lt;/ul&gt;
+
+  &lt;h2&gt;Library&lt;/h2&gt;
+  &lt;p&gt;Things worth your time, each with one sentence on why:
+  &lt;a href="/library/index.html"&gt;the Library&lt;/a&gt;. Items arrive as pull requests
+  from people who read more than I do.&lt;/p&gt;
+
+  &lt;h2&gt;Notes&lt;/h2&gt;
+  &lt;p&gt;What I learned, what confused me, and cheat sheets I keep for myself:
+  &lt;a href="/notes/index.html"&gt;the Notes&lt;/a&gt;. Written in Markdown, built to
+  pages.&lt;/p&gt;
+
+  &lt;h2&gt;Deliberately not on this page&lt;/h2&gt;
+  &lt;p class="dim small"&gt;No framework, no tracker, no cookie banner, no contact
+  form. A link to a repository says more than any of those.&lt;/p&gt;
+&lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+      <p class="expect">The GitHub link changes in step 12. Everything on this page
+      uses classes that already exist in <code>styles.css</code>; a new look is a
+      later project, not this chapter.</p></li>
+    <li><strong>Click through everything.</strong>
+<pre><code>npm run dev</code></pre>
+      Open <code>http://localhost:5173/</code>. Home, Workbook, one chapter, its
+      prev and next, Library, Notes, one note, and back to home from each nav.
+      Then the same on <code>npm run dev:full</code> and tick a chapter: the
+      checkbox still saves, because <code>/api/progress</code> never moved.</li>
+    <li><strong>Commit in slices, then the PR.</strong> One idea per commit; a
+      reviewer can read four small diffs and cannot read one big one.
+<pre><code>git add workbook src vite.config.ts library; git commit -m "refactor: move the workbook under /workbook/"
+git add src/chapters.test.ts; git commit -m "fix: chapters test reads the new folder"
+git add public; git commit -m "chore: redirect old chapter links"
+git add index.html; git commit -m "feat: home page"
+git push -u origin chapter-10; gh pr create --fill</code></pre>
+      <p class="expect">CI green. William reviews. After the merge, open your
+      domain on your phone: the home page, then an <em>old</em> chapter link
+      such as <code>/chapters/01-edit-and-refresh.html</code>, which should land
+      on the new path.</p></li>
+    <li><strong>Rename the repo.</strong> After the merge, from inside the repo,
+      with your domain as the new name (dots are allowed):
+<pre><code>git switch main; git pull
+gh repo rename your-domain.example
+git remote set-url origin https://github.com/macro-loop/your-domain.example.git
+git remote -v</code></pre>
+      GitHub forwards the old name, so the Cloudflare connection and William's
+      clone keep working. Set the URL anyway: forwarding is a courtesy, not a
+      promise. Then change the GitHub link on your home page to the new name,
+      and rewrite <code>README.md</code> so it is about your site, not the
+      course. Keep the "Deliberately absent" section; it is the most useful
+      part. Commit both as <code>docs: the readme is mine now</code>, on a
+      branch, through a PR, like everything.</li>
+  </ol>
+
+  <h2>Check</h2>
+  <p>On the live site: <code>/</code> is your page; <code>/workbook/</code> is the
+  workbook with the counter; an old <code>/chapters/...</code> link forwards;
+  a tick on a chapter survives a refresh on your phone. <code>npm test</code>
+  and <code>npm run build</code> are green. <code>git remote -v</code> shows the
+  new name. <code>gh repo view</code> shows your README.</p>
+
+  <h2>What can go wrong</h2>
+  <ul class="gotchas">
+    <li><b>A chapter page loads with no styling.</b> Its stylesheet link is still
+      <code>../styles.css</code>, which now points one folder too high. Step 4
+      missed it; search again for <code>../styles.css</code>.</li>
+    <li><b>Old links give a Cloudflare 404 for a minute after the merge.</b> The
+      redirect file deploys with the build; wait for the deployment to say
+      Success, then hard-refresh.</li>
+    <li><b><code>_redirects</code> is missing from <code>dist</code>.</b> It is not
+      in <code>public/</code>, or the folder is named differently. Vite only copies
+      from a folder called exactly <code>public</code> at the root.</li>
+    <li><b>The chapters test passes before you fixed it.</b> Then it is not reading
+      the folder you moved; check the path in the test is the one you think.</li>
+    <li><b><code>git push</code> says the repository was not found after the
+      rename.</b> The remote URL is still the old name and forwarding has not
+      caught up, or you typed the new name differently in
+      <code>set-url</code>. <code>git remote -v</code> and compare with
+      <code>gh repo view --json nameWithOwner</code>.</li>
+    <li><b>The AI offers to "clean up" the move by rewriting files.</b> Reject.
+      A move should be a move; a rewrite in the same PR hides whether the move
+      worked.</li>
+  </ul>
+
+  <h2>Mark it done</h2>
+  <ol class="steps">
+    <li>Tick chapter 10 on the live site, at its new address. The database does
+      not know the page moved; that is what the split in chapter 9 bought.</li>
+    <li>One line in your Today I learned page, which is now written in Markdown
+      and lives at <code>/notes/til.html</code> on the live site.</li>
+  </ol>
+
+  <h2>Pair with William</h2>
+  <div class="checkpoint">
+    <p>You will: give a tour of the live site from your phone, then show the
+    four commits and say why they are four.</p>
+    <p>William will: relax the branch protection to "pull request required, no
+    approval required", so from now on you can ship alone and he reviews when
+    asked. Then he runs his repo audit on your repo, at the "internal" tier,
+    and you read the report together. Whatever it flags is your backlog, not
+    his; put it in a note.</p>
+  </div>
+
+  <h2>Deliberately not in this chapter</h2>
+  <p class="dim small">No transfer of the repo to your own GitHub account. It is
+  possible, it is optional, and it breaks the Cloudflare git connection, so it
+  is done last or not at all; William has the steps. No new design: the home
+  page uses the workbook's tokens on purpose, and changing the look is a
+  project of its own, with its own PRs. No analytics, no contact form.</p>
+
+  <nav class="pager" aria-label="Chapter navigation"><a href="09-server-side.html">&larr; 9. Save progress on the server</a><a href="11-floatnote-pr.html">11. A real pull request to FloatNote &rarr;</a></nav>
+</div>
+</body>
+</html>

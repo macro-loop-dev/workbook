@@ -1,0 +1,8 @@
+---
+description: Rules for this workbook repo. Always applied.
+alwaysApply: true
+---
+Follow `AGENTS.md` at the repository root. It is the only rule file; this one
+exists so Cursor lists it under Settings > Rules.
+
+@AGENTS.md

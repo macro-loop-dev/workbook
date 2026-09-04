@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>0. Set up the machine · The Workbook</title>
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+<div class="page">
+  <nav class="site-nav" aria-label="Site">
+    <a class="brand" href="../index.html">The Workbook</a>
+    <a href="../index.html" aria-current="page">Chapters</a>
+    <a href="../library/index.html">Library</a>
+    <a href="../notes/index.html">Notes</a>
+  </nav>
+
+  <header class="chapter-header">
+    <div class="kicker"><span>Chapter 0</span><span class="badge">mechanic: watch</span><span>2-3 hours, mostly waiting for installers</span></div>
+    <h1>Set up the machine</h1>
+    <p class="lede">Six installs, four settings, two accounts. Nothing here is
+    hard, and every bit of it will bite later if it is skipped.</p>
+  </header>
+
+  <h2>Why this chapter exists</h2>
+  <p>Every chapter after this one assumes six tools exist and answer when
+  called. Doing them one at a time, out loud, in a terminal, is also your first
+  lesson: a command is a sentence you type, and the computer replies. You will
+  type hundreds of them; these are the first six.</p>
+  <p>The accounts matter more than the tools. Tools can be reinstalled. A GitHub
+  account is where all of your work will live, and you will want the same one
+  at 25.</p>
+
+  <h2>A story</h2>
+  <aside class="story">
+    <p class="when">William's laptop, 2026-08-22</p>
+    <p>William ran a setup script that was supposed to <em>link</em> some config
+    files, so that updating one place would update everywhere. It printed
+    success. Days later nothing was updating. The script had silently made
+    <em>copies</em> instead of links, because he had run it in the old blue
+    "Windows PowerShell" instead of the new black "PowerShell 7". Same commands,
+    same screen, different program. Which terminal you are in is a real
+    variable, and this chapter makes sure it is the right one.</p>
+  </aside>
+
+  <h2>What you will do</h2>
+  <ul>
+    <li>Make two accounts: GitHub and Cursor.</li>
+    <li>Install PowerShell 7, Git, the GitHub CLI, Node, gitleaks and Cursor with six commands.</li>
+    <li>Set four git settings and one PowerShell setting.</li>
+    <li>Log in to GitHub from the terminal.</li>
+    <li>Point Cursor's terminal at PowerShell 7.</li>
+  </ul>
+
+  <h2>Do it</h2>
+  <ol class="steps">
+    <li><strong>GitHub account.</strong> Go to <a href="https://github.com/signup">github.com/signup</a>.
+      Use your <em>personal</em> email, not a school one: schools change, this
+      account should not. Pick a username you would be happy to see on a job
+      application. Turn on two-factor authentication with an authenticator app
+      on your phone, download the recovery codes, and print them or write them
+      somewhere physical.
+      <p class="expect">Done when: you can log in on your phone with the app code.</p></li>
+    <li><strong>Cursor account.</strong> Go to <a href="https://cursor.com">cursor.com</a>
+      and sign up with the same personal email. William will check whether a
+      student plan is available; if not, the free tier is enough for chapters 1
+      to 7.</li>
+    <li><strong>Open a terminal.</strong> Press the Windows key, type
+      <code>terminal</code>, open <em>Terminal</em>. The tab will say
+      "Windows PowerShell". That is the old one; fine for the next step only.</li>
+    <li><strong>Install the six tools.</strong> Paste these one at a time. Each
+      one prints a progress bar, then "Successfully installed". Some pop up an
+      installer window; accept the defaults.
+<pre><code>winget install --id Microsoft.PowerShell -e
+winget install --id Git.Git -e
+winget install --id GitHub.cli -e
+winget install --id OpenJS.NodeJS.LTS -e
+winget install --id Gitleaks.Gitleaks -e
+winget install --id Anysphere.Cursor -e</code></pre>
+      <p class="expect">If <code>winget</code> itself is "not recognized", install
+      "App Installer" from the Microsoft Store and reopen the terminal.</p></li>
+    <li><strong>Close the terminal completely and open PowerShell 7.</strong>
+      Windows key, type <code>pwsh</code>, open <em>PowerShell 7</em>. Black
+      icon. From now on, always this one. In Terminal you can make it the
+      default: Settings &rarr; Startup &rarr; Default profile &rarr; PowerShell.
+      <p class="expect"><code>$PSVersionTable.PSVersion</code> prints a version starting with 7.</p></li>
+    <li><strong>Allow scripts to run.</strong> Node's tools are PowerShell scripts, and Windows blocks those by default.
+<pre><code>Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</code></pre>
+      <p class="expect">Answer <code>Y</code>. No output means it worked.</p></li>
+    <li><strong>Tell git who you are and how to behave.</strong> Use the same
+      name and email as your GitHub account.
+<pre><code>git config --global user.name "Your Name"
+git config --global user.email "you@example.com"
+git config --global core.autocrlf false
+git config --global pull.ff only
+git config --global init.defaultBranch main</code></pre>
+      <p class="expect">The last three prevent three different confusing messages
+      you would otherwise meet in chapters 3, 5 and 4. You do not need to
+      understand them yet.</p></li>
+    <li><strong>Log in to GitHub from the terminal.</strong>
+<pre><code>gh auth login</code></pre>
+      Answer: <em>GitHub.com</em>, <em>HTTPS</em>, <em>Yes</em> (authenticate git),
+      <em>Login with a web browser</em>. Copy the code it shows, press Enter, paste
+      the code in the browser.
+      <p class="expect"><code>gh auth status</code> says "Logged in to github.com".</p></li>
+    <li><strong>Open Cursor and sign in.</strong> Then Settings (the gear, top
+      right) &rarr; search "default profile" &rarr; <em>Terminal &rsaquo; Integrated &rsaquo; Default Profile: Windows</em>
+      &rarr; <strong>PowerShell</strong>. Not "Windows PowerShell". Same trap as the story.</li>
+  </ol>
+
+  <h2>Check</h2>
+  <p>In PowerShell 7, paste this whole block. Every line should print a version
+  or a status, none should say "not recognized".</p>
+<pre><code>git --version
+gh auth status
+node --version
+npm --version
+gitleaks version
+cursor --version</code></pre>
+
+  <h2>What can go wrong</h2>
+  <ul class="gotchas">
+    <li><b>"not recognized as the name of a cmdlet".</b> Almost always: the tool was
+      installed but this terminal was opened before that. Close the terminal
+      completely and open a new one. This is the number one cause of "it doesn't
+      work" for the rest of the course.</li>
+    <li><b>"npm.ps1 cannot be loaded because running scripts is disabled".</b> You
+      are in the blue Windows PowerShell, or step 6 was skipped. Open PowerShell 7
+      and check <code>$PSVersionTable.PSVersion</code>.</li>
+    <li><b><code>gh auth login</code> asks about SSH keys.</b> You arrowed onto SSH
+      instead of HTTPS. Ctrl+C and start again; choose HTTPS.</li>
+    <li><b>winget says the package was not found.</b> The ids above were checked on
+      2026-09-02. Search with <code>winget search cursor</code> and tell William if
+      the id has changed.</li>
+    <li><b>Two-factor codes stop working.</b> This is what the recovery codes are
+      for. That is why they are on paper.</li>
+  </ul>
+
+  <h2>Mark it done</h2>
+  <p>You do not, this time. At the checkpoint William opens <code>index.html</code>
+  in Cursor, changes one word, saves, and refreshes the browser. Watch the
+  counter under the chapter list go from 0 to 1. That is chapter 1's whole
+  trick, shown once before you do it.</p>
+  <p>Then write your first line in <a href="../notes/til.html">Today I learned</a>.
+  One sentence. Delete the example entry.</p>
+
+  <h2>Pair with William</h2>
+  <div class="checkpoint">
+    <p>Bring the laptop. William will:</p>
+    <ul>
+      <li>Run the Check block over your shoulder.</li>
+      <li>Clone this repo: <code>gh repo clone macro-loop-dev/workbook ~\dev\workbook</code>, then <code>cursor ~\dev\workbook</code>.</li>
+      <li>Open <code>index.html</code> in a browser by double-clicking it in File Explorer.</li>
+      <li>Mark chapter 0 done in front of you.</li>
+    </ul>
+    <p>You will: explain, in one sentence each, what the six tools are for.
+    Guessing is fine.</p>
+  </div>
+
+  <h2>Deliberately not in this chapter</h2>
+  <p class="dim small">No setup script. William has one for his own machines and
+  it hides which step failed; six visible commands do not. No Docker, no
+  password manager, no VPN: nothing in this course needs them on your laptop.</p>
+
+  <nav class="pager" aria-label="Chapter navigation"><a href="../index.html">&larr; Chapters</a><a href="01-edit-and-refresh.html">1. Edit the file, refresh the browser &rarr;</a></nav>
+</div>
+</body>
+</html>

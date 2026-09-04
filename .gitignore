@@ -1,0 +1,17 @@
+# Local-only and never committed
+.env
+.env.*
+!.env.example
+*.local
+*.log
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Arrive in later chapters; listed now so nobody commits them by accident
+node_modules/
+dist/
+.wrangler/
+.dev.vars

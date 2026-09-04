@@ -1,0 +1,24 @@
+name: gates
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  secrets:
+    # The pre-commit hook in .githooks/ already runs gitleaks, but hooks are
+    # local, opt-in and bypassable with --no-verify. This is the copy that
+    # cannot be skipped. It is the first green check you will ever see, in
+    # chapter 4. A "checks" job (typecheck, lint, test, build) joins it in
+    # chapter 8, once there is a package.json for it to check.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

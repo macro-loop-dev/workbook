@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>9. Save progress on the server · The Workbook</title>
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+<div class="page">
+  <nav class="site-nav" aria-label="Site">
+    <a class="brand" href="../index.html">The Workbook</a>
+    <a href="../index.html" aria-current="page">Chapters</a>
+    <a href="../library/index.html">Library</a>
+    <a href="../notes/index.html">Notes</a>
+  </nav>
+
+  <header class="chapter-header">
+    <div class="kicker"><span>Chapter 9</span><span class="badge">mechanic: server + database</span><span>6-8 hours, over a few sittings</span></div>
+    <h1>Save progress on the server</h1>
+    <p class="lede">One truth, kept where every browser can reach it. A secret
+    that never touches a file in the repo. Two tables of SQL. The smallest
+    amount of each that does the job.</p>
+  </header>
+
+  <h2>Why this chapter exists</h2>
+  <p>Chapter 7 left you with two truths: the tick in your laptop's browser and
+  the tick on your phone disagree, because each browser remembers for itself.
+  The fix is to stop letting browsers remember and put the answer in one place
+  they all ask. That place is a <em>server</em>: a program on someone else's
+  computer that waits for requests and answers them. Your site has been served
+  from Cloudflare since chapter 5, but so far it only handed out files. Today
+  it starts running code you wrote.</p>
+  <p>Three new things, each in its smallest form. A <em>database</em> is a
+  program that keeps tables and lets you ask questions about them in a language
+  called <em>SQL</em>; ours is Cloudflare's <em>D1</em>, and it has two tables.
+  An <em>API</em> is a set of URLs meant for programs rather than people: your
+  page will ask <code>/api/progress</code> for the ticks and send a
+  <code>PUT</code> request to change one. And a <em>secret</em>: anyone can read
+  the scoreboard, but only someone holding the key can change it, and the key
+  lives in exactly one place that is not this repo.</p>
+  <p>The code that runs on the server is a <em>Pages Function</em>: a TypeScript
+  file in a folder called <code>functions</code>, where the file's path is the
+  URL it answers. It deploys with the site, from the same pull request, so the
+  workflow you already know does not change. The tool that talks to Cloudflare
+  from your terminal is called <em>wrangler</em>.</p>
+
+  <h2>A story</h2>
+  <aside class="story">
+    <p class="when">William's <code>dev-setup</code> repo, <code>CLAUDE.md</code>, August 2026</p>
+    <p>William runs a small search server on a machine at home. It needs a key
+    in a header, and it answers <code>{"error":"unauthorized"}</code> without
+    one. His notes carry a rule in bold: that error is <em>almost never the
+    server</em>. The key sits in an environment variable, and a program only
+    sees the variables that existed when it was started. A terminal opened
+    before the key was set has an empty one, and every program it launches
+    inherits the emptiness. So the checklist reads: a healthy
+    <code>/health</code> plus an unauthorized <code>/search</code> is a stale
+    process, not an outage; check the length of the variable before blaming
+    the network. Diagnosing a 401 is a skill. By the end of this chapter you
+    will have made every kind of 401 there is, on purpose, and know which
+    part of the chain each one points at.</p>
+  </aside>
+
+  <h2>What you will do</h2>
+  <ul>
+    <li>Install wrangler, log in, and create a database called <code>workbook</code>.</li>
+    <li>Write a migration: the SQL that creates the two tables. Run it against
+      a local copy, then against the real one.</li>
+    <li>Type one <code>UPDATE</code> by hand to mark chapters 0 to 8 done. It is
+      the last time progress changes by hand.</li>
+    <li>Write three Functions: read the scoreboard, change one chapter, mark a
+      Library item seen. The second and third check a key.</li>
+    <li>Change <code>main.ts</code> to ask the server instead of remembering.</li>
+    <li>Run the whole thing on your laptop with a local database, then ship it,
+      then tick chapter 9 on the live site and see it on your phone.</li>
+  </ul>
+
+  <h2>Do it</h2>
+  <ol class="steps">
+    <li><strong>Branch and install.</strong>
+<pre><code>git switch main; git pull --ff-only; git switch -c chapter-9
+npm i -D wrangler @cloudflare/workers-types</code></pre>
+      <p class="expect">On 2026-09-02 that installed wrangler 4.128.0 and
+      @cloudflare/workers-types 5.20260902.1. The second package is only
+      types: it tells TypeScript what <code>Response</code>,
+      <code>D1Database</code> and a Function's arguments look like on
+      Cloudflare's side.</p></li>
+    <li><strong>Log in.</strong>
+<pre><code>npx wrangler login</code></pre>
+      A browser tab opens on Cloudflare asking to allow wrangler. You are a
+      member of the project account from chapter 5; allow it. If no tab opens,
+      the terminal prints the URL: copy it into a browser.
+      <p class="expect"><code>npx wrangler whoami</code> prints your email and
+      the account name. Do this in a normal terminal, not inside an AI chat:
+      the login needs a browser it can open.</p></li>
+    <li><strong>Create the database.</strong>
+<pre><code>npx wrangler d1 create workbook</code></pre>
+      <p class="expect">It prints a small block ending with a
+      <code>database_id</code>, a long string of letters and digits with
+      dashes. Copy it; step 4 needs it. If William already created the
+      database in the dashboard, this says the name is taken:
+      <code>npx wrangler d1 list</code> shows the id instead. An id is a
+      name, not a secret; it can go in a file.</p></li>
+    <li><strong>Create <code>wrangler.toml</code>.</strong> In the repo root.
+      Paste your id in place of the placeholder.
+<pre><code># Cloudflare settings that live in the repo. Once this file names
+# pages_build_output_dir, bindings come from here and the dashboard only
+# shows them. An id is not a secret; the key is, and it is not in here.
+name = "workbook"
+compatibility_date = "2026-08-25"
+pages_build_output_dir = "dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "workbook"
+database_id = "paste-the-id-that-wrangler-d1-create-printed"</code></pre>
+      <p class="expect"><code>binding = "DB"</code> is the name the database
+      has inside your code: <code>env.DB</code>. The last block is the only
+      place that connection is made; without it, a Function deploys with no
+      database and every request fails. And a warning that matters: once this
+      file names <code>pages_build_output_dir</code>, the dashboard's own
+      settings for bindings stop applying. The file is the truth.</p></li>
+    <li><strong>Create <code>migrations/0001_progress.sql</code>.</strong> A
+      <em>migration</em> is a file of SQL that changes the shape of the
+      database, run once and never edited afterwards; the next change gets
+      <code>0002_</code>. A <em>table</em> has named columns and one row per
+      thing; <code>PRIMARY KEY</code> means no two rows share that value.
+<pre><code>-- Chapter 9. Two tables: one row per chapter, one row per Library item you
+-- have seen. A migration runs once per database and is never edited after
+-- it has run; the next change is 0002_something.sql.
+CREATE TABLE progress (
+  chapter TEXT PRIMARY KEY,
+  status TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+INSERT INTO progress (chapter, status, updated_at) VALUES
+  ('00', 'todo', '2026-09-02T00:00:00Z'),
+  ('01', 'todo', '2026-09-02T00:00:00Z'),
+  ('02', 'todo', '2026-09-02T00:00:00Z'),
+  ('03', 'todo', '2026-09-02T00:00:00Z'),
+  ('04', 'todo', '2026-09-02T00:00:00Z'),
+  ('05', 'todo', '2026-09-02T00:00:00Z'),
+  ('06', 'todo', '2026-09-02T00:00:00Z'),
+  ('07', 'todo', '2026-09-02T00:00:00Z'),
+  ('08', 'todo', '2026-09-02T00:00:00Z'),
+  ('09', 'todo', '2026-09-02T00:00:00Z'),
+  ('10', 'todo', '2026-09-02T00:00:00Z'),
+  ('11', 'todo', '2026-09-02T00:00:00Z');
+
+CREATE TABLE seen (
+  item_id TEXT PRIMARY KEY,
+  seen_at TEXT NOT NULL
+);</code></pre></li>
+    <li><strong>Run it locally, then for real.</strong> wrangler keeps a
+      private copy of the database on your laptop, in <code>.wrangler/</code>
+      (already in <code>.gitignore</code>). Everything gets tried there first.
+<pre><code>npx wrangler d1 migrations apply workbook --local</code></pre>
+      <p class="expect">A table with <code>0001_progress.sql</code> and a
+      tick. Now the real one; it asks you to confirm.</p>
+<pre><code>npx wrangler d1 migrations apply workbook --remote</code></pre>
+      <p class="expect">Same table, same tick, and a line saying it ran on the
+      remote database. <code>--local</code> and <code>--remote</code> are two
+      different databases from now on, and forgetting which one you are
+      talking to is the chapter's most common mistake.</p></li>
+    <li><strong>Mark chapters 0 to 8 done, by hand, once.</strong> The
+      migration inserted every chapter as <code>todo</code>. This is SQL typed
+      straight at the database; read it before you press Enter. The quotes
+      around <code>'08'</code> matter: chapter ids are text, and because they
+      are two digits, <code>&lt;=</code> sorts them correctly.
+<pre><code>npx wrangler d1 execute workbook --remote --command "UPDATE progress SET status = 'done' WHERE chapter &lt;= '08'"
+npx wrangler d1 execute workbook --remote --command "SELECT chapter, status FROM progress"</code></pre>
+      <p class="expect">The first says 9 rows changed. The second prints all
+      twelve rows: nine <code>done</code>, three <code>todo</code>. Run the
+      <code>UPDATE</code> once more with <code>--local</code> so the laptop
+      copy matches. From here on, nothing changes a status except the
+      Function you are about to write.</p></li>
+    <li><strong>Create <code>functions/api/progress.ts</code>.</strong> The first
+      Function. Its path is its URL: <code>functions/api/progress.ts</code>
+      answers <code>/api/progress</code>. <code>onRequestGet</code> runs for a
+      GET, which is what a browser sends when it just wants to read.
+<pre><code>// GET /api/progress
+// -&gt; { "chapters": { "00": "done", ... }, "seen": ["floatnote", ...] }
+// Reading needs no key: the site is public, so the scoreboard is too.
+
+interface Env {
+  DB: D1Database;
+}
+
+export const onRequestGet: PagesFunction&lt;Env&gt; = async ({ env }) =&gt; {
+  const progress = await env.DB.prepare(
+    "SELECT chapter, status FROM progress ORDER BY chapter",
+  ).all&lt;{ chapter: string; status: string }&gt;();
+  const chapters: Record&lt;string, string&gt; = {};
+  for (const row of progress.results) chapters[row.chapter] = row.status;
+
+  const seen = await env.DB.prepare("SELECT item_id FROM seen").all&lt;{ item_id: string }&gt;();
+  return Response.json({ chapters, seen: seen.results.map((row) =&gt; row.item_id) });
+};</code></pre>
+      <p class="expect"><code>env.DB</code> is the binding from
+      <code>wrangler.toml</code>. <code>prepare</code> holds a SQL sentence,
+      <code>all</code> runs it and returns rows. There is no key check here on
+      purpose: the site is public, so the scoreboard is too.</p></li>
+    <li><strong>Create <code>functions/api/progress/[chapter].ts</code>.</strong>
+      Square brackets in the file name mean "whatever came here in the URL":
+      <code>/api/progress/09</code> arrives with <code>params.chapter</code>
+      equal to <code>"09"</code>. This one answers PUT, which is what the page
+      sends to change something, and it checks the key first.
+<pre><code>// PUT /api/progress/08   header X-Workbook-Key: &lt;the key&gt;   body {"status":"done"}
+// -&gt; { "chapter": "08", "status": "done", "updated_at": "2026-..." }
+// The file name is the route: [chapter] means "whatever came after /progress/".
+import { isChapterId, isStatus } from "../../../src/progress";
+
+interface Env {
+  DB: D1Database;
+  WORKBOOK_KEY?: string;
+}
+
+export const onRequestPut: PagesFunction&lt;Env, "chapter"&gt; = async ({ request, env, params }) =&gt; {
+  // The secret comes from the environment, never from a file in the repo.
+  if (!env.WORKBOOK_KEY) {
+    return Response.json({ error: "WORKBOOK_KEY is not set on the server" }, { status: 500 });
+  }
+  if (request.headers.get("X-Workbook-Key") !== env.WORKBOOK_KEY) {
+    return Response.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  const chapter = params.chapter;
+  if (!isChapterId(chapter)) {
+    return Response.json({ error: "no such chapter" }, { status: 404 });
+  }
+  const body = (await request.json().catch(() =&gt; null)) as { status?: unknown } | null;
+  const status = body?.status;
+  if (!isStatus(status)) {
+    return Response.json({ error: 'status must be "todo" or "done"' }, { status: 400 });
+  }
+
+  const updatedAt = new Date().toISOString();
+  await env.DB.prepare("UPDATE progress SET status = ?1, updated_at = ?2 WHERE chapter = ?3")
+    .bind(status, updatedAt, chapter)
+    .run();
+  return Response.json({ chapter, status, updated_at: updatedAt });
+};</code></pre>
+      <p class="expect">Three things to notice. The key comes from
+      <code>env.WORKBOOK_KEY</code>, which Cloudflare fills in from a secret
+      William sets in the dashboard, and from <code>.dev.vars</code> on your
+      laptop; no file in the repo ever contains it. A wrong key is
+      <code>401</code>; that number means "who are you?", while
+      <code>403</code> would mean "I know who you are and the answer is no".
+      And <code>isChapterId</code> and <code>isStatus</code> are imported from
+      <code>src/progress.ts</code>, the same file the page uses: one
+      vocabulary, checked on both sides.</p></li>
+    <li><strong>Create <code>functions/api/seen/[id].ts</code>.</strong> The same
+      shape for Library items.
+<pre><code>// PUT /api/seen/floatnote   header X-Workbook-Key: &lt;the key&gt;   body {"seen":true}
+// -&gt; { "item_id": "floatnote", "seen": true }
+// true adds a row, false removes it; the table only lists what you have seen.
+
+interface Env {
+  DB: D1Database;
+  WORKBOOK_KEY?: string;
+}
+
+export const onRequestPut: PagesFunction&lt;Env, "id"&gt; = async ({ request, env, params }) =&gt; {
+  if (!env.WORKBOOK_KEY) {
+    return Response.json({ error: "WORKBOOK_KEY is not set on the server" }, { status: 500 });
+  }
+  if (request.headers.get("X-Workbook-Key") !== env.WORKBOOK_KEY) {
+    return Response.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  const id = params.id;
+  if (typeof id !== "string" || !/^[a-z0-9-]{1,64}$/.test(id)) {
+    return Response.json({ error: "bad item id" }, { status: 400 });
+  }
+  const body = (await request.json().catch(() =&gt; null)) as { seen?: unknown } | null;
+  if (typeof body?.seen !== "boolean") {
+    return Response.json({ error: "seen must be true or false" }, { status: 400 });
+  }
+
+  if (body.seen) {
+    await env.DB.prepare("INSERT OR REPLACE INTO seen (item_id, seen_at) VALUES (?1, ?2)")
+      .bind(id, new Date().toISOString())
+      .run();
+  } else {
+    await env.DB.prepare("DELETE FROM seen WHERE item_id = ?1").bind(id).run();
+  }
+  return Response.json({ item_id: id, seen: body.seen });
+};</code></pre></li>
+    <li><strong>Create <code>functions/tsconfig.json</code>.</strong> Function code
+      runs on Cloudflare, not in a browser, so it gets its own TypeScript
+      settings: the browser's <code>DOM</code> types come off and the Cloudflare
+      ones go on.
+<pre><code>{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2020"],
+    "types": ["@cloudflare/workers-types"]
+  },
+  "include": ["**/*.ts"]
+}</code></pre></li>
+    <li><strong>Update <code>package.json</code>.</strong> Two new scripts and one
+      changed one. <code>dev:full</code> builds and then serves
+      <code>dist</code> with the Functions and the local database.
+      <code>typecheck:functions</code> checks the new folder. <code>test</code>
+      loses <code>progress.test.ts</code>, because the file it tested is about
+      to go. The whole file, so you can compare:
+<pre><code>{
+  "name": "workbook",
+  "private": true,
+  "version": "0.9.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:full": "npm run build &amp;&amp; wrangler pages dev dist",
+    "build": "tsc --noEmit &amp;&amp; vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "typecheck:functions": "tsc --noEmit -p functions",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "test": "tsx src/chapters.test.ts &amp;&amp; tsx src/library.test.ts &amp;&amp; tsx src/notes.test.ts"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.11",
+    "@cloudflare/workers-types": "^5.20260902.1",
+    "@types/node": "^22.20.1",
+    "marked": "^18.0.11",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.3",
+    "wrangler": "^4.128.0"
+  }
+}</code></pre></li>
+    <li><strong>Tell Biome about the new folder.</strong> In
+      <code>biome.json</code>, the <code>includes</code> line becomes:
+<pre><code>"includes": ["src/**", "functions/**", "*.ts", "*.json", "!package-lock.json"]</code></pre></li>
+    <li><strong>The local key.</strong> Create <code>.dev.vars.example</code>
+      (committed, no real value):
+<pre><code># Copy this file to .dev.vars (git ignores that name) and put the real key
+# after the =. wrangler pages dev reads it; nothing else does.
+WORKBOOK_KEY=paste-the-key-here</code></pre>
+      Then make a key for your laptop. In the terminal:
+<pre><code>[guid]::NewGuid().ToString("N")</code></pre>
+      Copy the 32 characters it prints. In Cursor, copy
+      <code>.dev.vars.example</code> to a file named <code>.dev.vars</code> and
+      paste the key after the <code>=</code>. Then:
+<pre><code>git check-ignore .dev.vars</code></pre>
+      <p class="expect">It prints <code>.dev.vars</code>, which means git will
+      refuse to add it. If it prints nothing, stop: the file would be committed.
+      This local key is yours alone; the live site gets a different one from
+      William.</p></li>
+    <li><strong>Replace <code>src/main.ts</code>.</strong> The page stops
+      remembering. On load it asks <code>/api/progress</code>; when you tick, it
+      sends a PUT with the key in a header; the key is the one thing kept in
+      this browser, asked for once and cleared if the server ever says 401.
+<pre><code>// The page's only script. Draws the chapter list and the Library from the
+// files in src/, then asks the server which chapters are done and which
+// items are seen. This browser remembers one thing: the key that lets you
+// write. Everything else is on the server, so every browser agrees.
+import { CHAPTERS, chapterId } from "./chapters";
+import { isCategory } from "./library";
+import libraryData from "./library.json";
+import { CHAPTER_IDS, countDone, isStatus, type Status } from "./progress";
+
+const KEY_KEY = "workbook.key";
+
+interface ServerState {
+  chapters: Record&lt;string, Status&gt;;
+  seen: string[];
+}
+
+// GET /api/progress. Null when there is no server (plain npm run dev), so
+// the page still draws; every box just shows todo and nothing sticks.
+async function loadState(): Promise&lt;ServerState | null&gt; {
+  try {
+    const res = await fetch("/api/progress");
+    if (!res.ok) return null;
+    const data = (await res.json()) as { chapters?: unknown; seen?: unknown };
+    if (!data.chapters || typeof data.chapters !== "object") return null;
+    const chapters: Record&lt;string, Status&gt; = {};
+    for (const [id, s] of Object.entries(data.chapters)) {
+      if (isStatus(s)) chapters[id] = s;
+    }
+    const seen = Array.isArray(data.seen) ? data.seen.filter((x) =&gt; typeof x === "string") : [];
+    return { chapters, seen };
+  } catch {
+    return null;
+  }
+}
+
+// Asked once, then kept. Cleared again if the server ever says 401.
+function askForKey(): string | null {
+  const stored = localStorage.getItem(KEY_KEY);
+  if (stored) return stored;
+  const typed = window.prompt("Workbook key (William has it):")?.trim() ?? "";
+  if (typed) localStorage.setItem(KEY_KEY, typed);
+  return typed || null;
+}
+
+// PUT with the key in a header. False means nothing changed on the server,
+// and the caller puts the checkbox back the way it was.
+async function put(path: string, body: unknown): Promise&lt;boolean&gt; {
+  const key = askForKey();
+  if (!key) return false;
+  try {
+    const res = await fetch(path, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "X-Workbook-Key": key },
+      body: JSON.stringify(body),
+    });
+    if (res.status === 401) {
+      localStorage.removeItem(KEY_KEY);
+      window.alert("The server refused that key. Ask William for the current one.");
+    }
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+function make&lt;K extends keyof HTMLElementTagNameMap&gt;(
+  tag: K,
+  className = "",
+  text = "",
+): HTMLElementTagNameMap[K] {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text) node.textContent = text;
+  return node;
+}
+
+function renderChapters(list: HTMLOListElement, state: ServerState | null): void {
+  const status: Record&lt;string, Status&gt; = {};
+  for (const id of CHAPTER_IDS) status[id] = state?.chapters[id] ?? "todo";
+
+  const bar = make("div", "bar");
+  const fill = make("div", "bar-fill");
+  bar.append(fill);
+  const paint = () =&gt; {
+    fill.style.width = `${Math.round((100 * countDone(status)) / CHAPTERS.length)}%`;
+  };
+
+  for (const c of CHAPTERS) {
+    const id = chapterId(c);
+    const li = make("li");
+    li.dataset.chapter = id;
+    li.dataset.status = status[id];
+    const box = make("input");
+    box.type = "checkbox";
+    box.checked = status[id] === "done";
+    box.addEventListener("change", async () =&gt; {
+      const next: Status = box.checked ? "done" : "todo";
+      if (!(await put(`/api/progress/${id}`, { status: next }))) {
+        box.checked = !box.checked;
+        return;
+      }
+      status[id] = next;
+      li.dataset.status = next;
+      paint();
+    });
+    const link = make("a", "", c.title);
+    link.href = `chapters/${c.slug}.html`;
+    const meta = make("span", "meta");
+    meta.append(make("span", "badge", c.mechanic), make("span", "", c.time));
+    li.append(make("span", "num", String(c.number)), box, link, meta);
+    list.append(li);
+  }
+  list.after(bar);
+  paint();
+}
+
+function renderLibrary(state: ServerState | null): void {
+  for (const item of libraryData.items) {
+    if (!isCategory(item.category)) continue;
+    const list = document.querySelector&lt;HTMLUListElement&gt;(`ul[data-category="${item.category}"]`);
+    if (!list) continue;
+    const li = make("li");
+    li.dataset.added = item.added;
+    li.dataset.seen = item.seen || state?.seen.includes(item.id) ? "yes" : "no";
+    const box = make("input");
+    box.type = "checkbox";
+    box.title = "seen";
+    box.checked = li.dataset.seen === "yes";
+    box.addEventListener("change", async () =&gt; {
+      if (!(await put(`/api/seen/${item.id}`, { seen: box.checked }))) {
+        box.checked = !box.checked;
+        return;
+      }
+      li.dataset.seen = box.checked ? "yes" : "no";
+    });
+    const link = make("a", "", item.title);
+    link.href = item.url;
+    li.append(box, " ", link, " ", make("span", "why", item.why));
+    list.append(li);
+  }
+}
+
+async function main(): Promise&lt;void&gt; {
+  const state = await loadState();
+  if (!state) console.warn("No /api/progress here. Run npm run dev:full to talk to the database.");
+  const chapterList = document.querySelector&lt;HTMLOListElement&gt;("ol#chapters");
+  if (chapterList) renderChapters(chapterList, state);
+  if (document.querySelector("ul[data-category]")) renderLibrary(state);
+}
+
+main();</code></pre>
+      Then delete the two files that are no longer the truth:
+<pre><code>git rm src/progress.json src/progress.test.ts</code></pre>
+      <p class="expect">Read <code>loadState</code> and <code>put</code>
+      twice. Neither writes to localStorage except for the key. If the server
+      is absent (plain <code>npm run dev</code>), the page still draws with
+      every box empty and a console warning saying why; ticks do not stick,
+      and that is honest.</p></li>
+    <li><strong>Add the new check to CI.</strong> In
+      <code>.github/workflows/gates.yml</code>, in the <code>checks</code> job,
+      after the <code>npm run typecheck</code> line, add:
+<pre><code>      - run: npm run typecheck:functions</code></pre></li>
+    <li><strong>Run every gate.</strong>
+<pre><code>npm run typecheck; npm run typecheck:functions; npm run lint; npm test; npm run build</code></pre>
+      <p class="expect">Nothing red. Three test lines now, not four.</p></li>
+    <li><strong>Run the whole thing on your laptop.</strong>
+<pre><code>npm run dev:full</code></pre>
+      Open <a href="http://localhost:8788">http://localhost:8788</a>.
+      <p class="expect">Nine ticks, from the local database. Tick chapter 9: a
+      box asks for the key; paste the one from <code>.dev.vars</code>. Refresh:
+      still ticked. Open the same address in a private window, where
+      localStorage is empty: still ticked. That is one truth. In a second
+      terminal:</p>
+<pre><code>Invoke-RestMethod http://localhost:8788/api/progress</code></pre>
+      <p class="expect">The same answer your page got, printed as a table.
+      Then untick chapter 9 again, because you have not finished it. Note
+      the address bar: Cloudflare drops <code>.html</code> from chapter URLs
+      (<code>/chapters/09-server-side</code>); links still work.
+      <kbd>Ctrl</kbd>+<kbd>C</kbd> stops the server.</p></li>
+    <li><strong>Commit, push, pull request.</strong>
+<pre><code>git add -A; git status</code></pre>
+      <p class="expect">Present: <code>wrangler.toml</code>, the migration, the
+      three Functions, <code>functions/tsconfig.json</code>,
+      <code>.dev.vars.example</code>, the changed <code>main.ts</code>,
+      <code>package.json</code> and its lock, the deleted JSON and test.
+      Absent: <code>.dev.vars</code>, <code>.wrangler</code>. If
+      <code>.dev.vars</code> is in the list, do not commit; go back to step
+      14.</p>
+<pre><code>git commit -m "feat: progress and seen state in D1 behind a keyed API"; git push -u origin chapter-9; gh pr create --fill</code></pre>
+      <p class="expect">Both checks green. The PR description should say what
+      William has to do before merging: set the <code>WORKBOOK_KEY</code>
+      secret. He reviews the Functions line by line at the checkpoint.</p></li>
+  </ol>
+
+  <h2>Check</h2>
+  <p>After the merge and the deployment, from any terminal, with your domain
+  in place of the example:</p>
+<pre><code>Invoke-RestMethod https://example.com/api/progress</code></pre>
+  <p>prints the chapters and an empty <code>seen</code> list. Then, with the key
+  William gave you:</p>
+<pre><code>Invoke-RestMethod -Method Put -Uri https://example.com/api/progress/09 -ContentType "application/json" -Headers @{ "X-Workbook-Key" = "paste-the-key" } -Body '{"status":"todo"}'</code></pre>
+  <p>prints the row back with a fresh <code>updated_at</code>. The same command
+  without <code>-Headers</code> prints a red error containing <code>401</code>:
+  that is the server answering correctly. <code>git status</code> is clean, and
+  <code>git log --oneline -1</code> is the merge commit; no tick you make from
+  now on changes a file.</p>
+
+  <h2>What can go wrong</h2>
+  <ul class="gotchas">
+    <li><b>The AI offers to "make the key not prompt every time" and writes it
+      into <code>main.ts</code>.</b> This is the chapter's planted moment.
+      <code>main.ts</code> is shipped to every visitor's browser; a key in it is
+      a key on the internet. Reject the diff, and read rule 7 in
+      <code>AGENTS.md</code> aloud to it if you like. The prompt-once-and-store
+      behaviour it dislikes is the design.</li>
+    <li><b>Ticks work on your laptop but the live site says
+      <code>{"error":"unauthorized"}</code>.</b> Read the story. Your browser
+      holds the local key from <code>.dev.vars</code>; the live site wants
+      William's. The page clears the stored key on a 401 and asks again; paste
+      the right one. If it says <code>WORKBOOK_KEY is not set on the server</code>
+      (a 500, not a 401), the secret has not been set in the dashboard yet.</li>
+    <li><b>Live site: "no such table" or an empty scoreboard.</b> The migration
+      ran with <code>--local</code> only. Run it with <code>--remote</code>.
+      The reverse (works live, empty on the laptop) is the same mistake the
+      other way round.</li>
+    <li><b>The Function fails on Cloudflare with something about
+      <code>DB</code> being undefined.</b> The <code>[[d1_databases]]</code>
+      block is missing or the id is wrong, or it was added to the dashboard
+      instead of the file. Once <code>wrangler.toml</code> has
+      <code>pages_build_output_dir</code>, dashboard bindings are ignored; the
+      block must be in the file, in the same commit as the Functions.</li>
+    <li><b><code>wrangler login</code> hangs.</b> No browser could open: you
+      are in a terminal inside an AI chat, or over a remote connection. Use
+      the plain Cursor terminal or Windows Terminal, or copy the printed URL.</li>
+    <li><b><code>npm run dev:full</code> shows the old site.</b> It serves
+      <code>dist</code>, which is whatever the last build wrote. The script
+      builds first; if you ran <code>npx wrangler pages dev dist</code> by
+      hand, build first.</li>
+    <li><b>Ticks do not stick on <code>npm run dev</code>.</b> Correct: that is
+      Vite alone, with no Functions and no database. The console says so.
+      <code>dev:full</code> is the one with the server.</li>
+    <li><b>The PUT returns 400.</b> The body was not JSON, or
+      <code>status</code> was not one of the two words. The error text says
+      which. Every branch in the Function returns a sentence for a reason.</li>
+    <li><b>The AI adds CORS headers "to fix the fetch".</b> Ask it what CORS
+      is for: browsers refusing to let one site read another site's API. Your
+      page and your API are the same site, so there is nothing to fix. Reject.</li>
+    <li><b>Nothing in the deployment log explains a failing request.</b>
+      Function logs are separate:
+      <code>npx wrangler pages deployment tail</code> streams them live while
+      you click. Add a <code>console.log</code> in the Function if you need to
+      see a value.</li>
+    <li><b><code>tsc -p functions</code> complains that <code>Response</code>
+      or <code>fetch</code> has two definitions.</b> <code>functions/tsconfig.json</code>
+      lost its <code>lib</code> line, so the browser's DOM types and
+      Cloudflare's are both loaded. Restore it.</li>
+  </ul>
+
+  <h2>Mark it done</h2>
+  <ol class="steps">
+    <li>After the merge, wait for the deployment to finish. Open your domain.
+      Tick chapter 9. When it asks, paste the key William gives you at the
+      checkpoint.
+      <p class="expect">Ticked. Refresh: ticked. On your phone: ticked. Counter
+      says 10 of 12. In the terminal, <code>git status</code>: nothing. The
+      answer moved from a file to a row.</p></li>
+    <li>One line in <code>notes/til.md</code>. This one still needs a branch
+      and a pull request, like any file. That is the split this chapter made
+      for good: what the site <em>says</em> is in git, reviewed; what the site
+      <em>knows</em> is in the database, live.</li>
+  </ol>
+
+  <h2>Pair with William</h2>
+  <div class="checkpoint">
+    <p>You will: walk William through <code>[chapter].ts</code> line by line,
+    saying what each <code>return</code> means and which number it sends.
+    Then ask the AI, in front of him, to "make the key not prompt every time",
+    and reject what it does.</p>
+    <p>William will: set the real <code>WORKBOOK_KEY</code> in the dashboard
+    before the merge and check the D1 binding shows there, read-only. Run
+    <code>git check-ignore .dev.vars</code> on your laptop. After you have
+    ticked chapter 9 live, he rotates the secret: changes it in the dashboard,
+    asks you to tick something, and you watch the 401, the cleared key and the
+    prompt, then paste the new one. Rotating a key should be boring; that is
+    the point of the rehearsal.</p>
+  </div>
+
+  <h2>Deliberately not in this chapter</h2>
+  <p class="dim small">No accounts, no login page, no passwords: one shared key
+  is the smallest thing that works for one writer. No library that wraps SQL
+  (an "ORM"): three sentences of SQL are easier to read than the library that
+  would hide them. No caching, no rate limit, no middleware. No way to read
+  the <code>seen</code> table on its own: it rides along with
+  <code>/api/progress</code>. Each of these has a chapter of its own in some
+  other book.</p>
+
+  <nav class="pager" aria-label="Chapter navigation"><a href="08-build-step.html">&larr; 8. A build step</a><a href="10-portfolio.html">10. Restructure into a portfolio &rarr;</a></nav>
+</div>
+</body>
+</html>

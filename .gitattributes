@@ -1,0 +1,6 @@
+* text=auto eol=lf
+# Shell hooks must stay LF or sh chokes on the shebang
+.githooks/* text eol=lf
+*.png binary
+*.jpg binary
+*.ico binary

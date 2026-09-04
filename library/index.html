@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Library · The Workbook</title>
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+<div class="page library">
+  <nav class="site-nav" aria-label="Site">
+    <a class="brand" href="../index.html">The Workbook</a>
+    <a href="../index.html">Chapters</a>
+    <a href="index.html" aria-current="page">Library</a>
+    <a href="../notes/index.html">Notes</a>
+  </nav>
+
+  <h1>Library</h1>
+  <p class="lede">Things William thinks are worth your time. Each one has a
+  reason.</p>
+
+  <p>New items arrive as pull requests that you review and merge (from chapter 4).
+  When you have looked at something, mark it seen: change its
+  <code>data-seen="no"</code> to <code>"yes"</code>, the same way you mark a
+  chapter done. The <em>new</em> badge and the count above are drawn by CSS from
+  that attribute.</p>
+
+  <!-- ITEM SHAPE. One line each, newest last. Never edit an item you did not add.
+       <li data-added="YYYY-MM-DD" data-seen="no"><a href="URL">Title</a> <span class="why">why</span></li>
+       The four sections below are fixed; the share-library skill in dev-setup
+       appends to them by data-category. Seeded 2026-09-02 by the scaffold;
+       William, replace any of these you would not have chosen yourself. -->
+
+  <h2>Sites &amp; apps to check out</h2>
+  <ul data-category="sites-apps">
+    <li data-added="2026-09-02" data-seen="no"><a href="https://app.floatnote.dev">FloatNote</a> <span class="why">The app you will send a pull request to in chapter 11. Type some maths in it and watch the answer column.</span></li>
+    <li data-added="2026-09-02" data-seen="no"><a href="https://ciechanow.ski/">Bartosz Ciechanowski's explainers</a> <span class="why">Interactive explanations of how things work (GPS, cameras, bicycles). Every one is hand-built web code with no framework, which is the kind you are learning.</span></li>
+    <li data-added="2026-09-02" data-seen="no"><a href="https://neal.fun/">neal.fun</a> <span class="why">Small, playful web toys. Proof that a website can be one idea done well.</span></li>
+  </ul>
+
+  <h2>Tools</h2>
+  <ul data-category="tools">
+    <li data-added="2026-09-02" data-seen="no"><a href="https://docs.cursor.com/">Cursor docs</a> <span class="why">The editor you are using. Read the pages on Tab, Chat and Rules; the rest can wait.</span></li>
+    <li data-added="2026-09-02" data-seen="no"><a href="https://cli.github.com/">GitHub CLI</a> <span class="why">The gh command. From chapter 4 you open pull requests with it instead of clicking.</span></li>
+    <li data-added="2026-09-02" data-seen="no"><a href="https://excalidraw.com/">Excalidraw</a> <span class="why">Draw a diagram before you build a thing. Free, no account, works in the browser.</span></li>
+  </ul>
+
+  <h2>Prompting &amp; AI techniques</h2>
+  <ul data-category="prompting">
+    <li data-added="2026-09-02" data-seen="no"><a href="https://simonwillison.net/2025/Mar/11/using-llms-for-code/">Simon Willison: how I use LLMs to help me write code</a> <span class="why">The honest version. Set expectations, give context, test what it gives you. Chapter 2 in someone else's words.</span></li>
+    <li data-added="2026-09-02" data-seen="no"><a href="https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview">Anthropic: prompt engineering overview</a> <span class="why">Be clear, give examples, let it think. Written for people building with the API, but the first two pages apply to any chat box.</span></li>
+  </ul>
+
+  <h2>Reading &amp; videos</h2>
+  <ul data-category="reading">
+    <li data-added="2026-09-02" data-seen="no"><a href="https://developer.mozilla.org/en-US/docs/Learn_web_development">MDN: Learn web development</a> <span class="why">The reference for HTML, CSS and JavaScript. When the AI tells you what a tag does, this is where you check.</span></li>
+    <li data-added="2026-09-02" data-seen="no"><a href="https://missing.csail.mit.edu/">The Missing Semester of Your CS Education</a> <span class="why">A course on the terminal, git and the tools around code. Chapter 3 and 4 material, taught by MIT for free.</span></li>
+    <li data-added="2026-09-02" data-seen="no"><a href="https://wizardzines.com/">Julia Evans' zines</a> <span class="why">Comics that explain git, the terminal and networking. Read the free ones first.</span></li>
+  </ul>
+
+  <!-- The count lives below the lists on purpose: CSS counters count in
+       document order, so a counter read above the items would always say 0. -->
+  <p class="library-count"></p>
+
+  <h2>Deliberately not here</h2>
+  <p class="dim small">Nothing you have to read to finish a chapter. The chapters
+  are self-contained; the Library is the part after.</p>
+</div>
+</body>
+</html>

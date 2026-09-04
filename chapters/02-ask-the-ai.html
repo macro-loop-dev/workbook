@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2. Ask the AI, review the diff · The Workbook</title>
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+<div class="page">
+  <nav class="site-nav" aria-label="Site">
+    <a class="brand" href="../index.html">The Workbook</a>
+    <a href="../index.html" aria-current="page">Chapters</a>
+    <a href="../library/index.html">Library</a>
+    <a href="../notes/index.html">Notes</a>
+  </nav>
+
+  <header class="chapter-header">
+    <div class="kicker"><span>Chapter 2</span><span class="badge">mechanic: ask the AI</span><span>1-2 hours</span></div>
+    <h1>Ask the AI, review the diff</h1>
+    <p class="lede">The AI is a fast, literal junior. The diff is where you decide.</p>
+  </header>
+
+  <h2>Why this chapter exists</h2>
+  <p>In chapter 1 you made every edit yourself, so you know what a one-line
+  change looks like. Today an assistant makes the edits, and your job changes
+  from typing to judging.</p>
+  <p>Two words. The <em>AI</em> here is the assistant built into Cursor: you
+  type a request in a panel, it proposes changes to your files. A <em>diff</em>
+  is the list of what changed: lines removed (red, with a minus) and lines
+  added (green, with a plus). The assistant is quick and confident and does
+  exactly what your words say, which is not always what you meant. The diff is
+  where you find out. Commits, pull requests and reviews are all about reading
+  diffs; this is the first one.</p>
+
+  <h2>A story</h2>
+  <aside class="story">
+    <p class="when">William's dev-setup repo, ladder.md, 2026-08-22</p>
+    <p>William keeps a file about the order to make a project safe. One
+    paragraph is about files copied from a template: a README about someone
+    else's project, a check that installs things and calls that a test. His
+    line: "A green check mark that verified nothing is actively misleading; you
+    will trust it exactly when you shouldn't." An AI's explanation of its own
+    change is the same kind of thing. It sounds like something was checked. It
+    was not. The diff is the only part that is a fact.</p>
+  </aside>
+
+  <h2>What you will do</h2>
+  <ul>
+    <li>Confirm the assistant read the rules for this repo.</li>
+    <li>Ask for a small change, read the diff, accept it.</li>
+    <li>Ask for a vague change, watch, reject it.</li>
+    <li>Ask a question that should change nothing.</li>
+    <li>Ask for a note page and count the files it touched.</li>
+    <li>Mark this chapter done by asking, and check the diff is one attribute.</li>
+  </ul>
+
+  <h2>Do it</h2>
+  <ol class="steps">
+    <li><strong>Open the folder and read the rules.</strong> In PowerShell 7:
+<pre><code>cursor ~\dev\workbook</code></pre>
+      Open <code>AGENTS.md</code> and read its ten rules once. Cursor reads
+      this file on its own; it is the contract between you and the assistant.
+      Then open Cursor Settings (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>J</kbd>)
+      and find <em>Rules</em>: the project rules should list
+      <code>workbook.mdc</code>, always applied. That is
+      <code>.cursor/rules/workbook.mdc</code>, four lines pointing at
+      <code>AGENTS.md</code>. If it is not listed, first gotcha.</li>
+    <li><strong>Open the AI panel.</strong> <kbd>Ctrl</kbd>+<kbd>L</kbd>. At
+      the bottom of the message box is a mode switch: <em>Agent</em> can edit
+      files, <em>Ask</em> can only answer. Choose Agent and type:
+<pre><code>Which rules apply to this repo? List them by number. Do not change anything.</code></pre>
+      <p class="expect">The ten rules from <code>AGENTS.md</code>, in order, and
+      no file changed. If it says it has no rules, first gotcha.</p></li>
+    <li><strong>A small, clear ask.</strong>
+<pre><code>In index.html, add one short paragraph directly under the title saying who this workbook is for. Nothing else.</code></pre>
+      <p class="expect">First one sentence saying what it will do (rule 1, line 7
+      of <code>AGENTS.md</code>). Then <code>index.html</code> in the panel with
+      a green block of one to three lines. Count the red lines: none, because
+      you asked it to add, not remove. Read the green ones. Click
+      <strong>Accept</strong>. Save if the tab shows a dot, refresh the browser.</p>
+      If you would have said it differently, change the words yourself now.
+      The assistant drafts; you decide.</li>
+    <li><strong>A vague ask.</strong>
+<pre><code>Make the site look modern.</code></pre>
+      Watch, and click nothing yet.
+      <p class="expect">A lot. <code>styles.css</code> with many red and green
+      lines, probably new colours written as <code>#</code> codes (rule 8
+      forbids them), maybe <code>index.html</code> too. Before you touch a
+      button, write down or screenshot (<kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>)
+      which files it touched and one change you did not ask for. You need this
+      twice today.</p>
+      Now <strong>Reject</strong> (or <em>Reject all</em>). Refresh: the site is
+      as it was. You asked for a feeling; it guessed. Every guess was a decision
+      you did not make, and there were dozens in one click.</li>
+    <li><strong>A question that should change nothing.</strong> Switch to
+      <em>Ask</em>:
+<pre><code>Explain the CSS rule in styles.css that makes the counter under the chapter list work.</code></pre>
+      <p class="expect">An explanation, no Accept or Reject, no file changed. It
+      should mention <code>counter-increment: done</code> on
+      <code>.chapters li[data-status="done"]</code> and
+      <code>.progress::after</code> with <code>counter(done) " of 12 done"</code>.</p>
+      Check it: open <code>styles.css</code>, search <code>counter(done)</code>,
+      read the two rules. If explanation and file disagree, the file is right.</li>
+    <li><strong>A task that touches exactly two files.</strong> Back to
+      <em>Agent</em>:
+<pre><code>Create a new note page called "What a diff is". Follow rule 4.</code></pre>
+      <p class="expect">Two files, no more: a new
+      <code>notes/2026-MM-DD-what-a-diff-is.html</code> copied from
+      <code>notes/_template.html</code>, and one line in
+      <code>notes/index.html</code> under <em>Pages</em> (there is a
+      commented-out example on line 39; it may simply use that). A third file:
+      Reject, ask why.</p>
+      Accept. Open the new page and write it yourself: under <em>What I
+      learned</em>, what you noted in step 4. Save.</li>
+  </ol>
+
+  <h2>Check</h2>
+  <p><code>index.html</code> has your paragraph under the title and nothing
+  else looks different. <code>styles.css</code> is as chapter 1 left it: no
+  dot on its tab, no change marks in the scrollbar. The
+  <a href="../notes/index.html">Notes</a> page lists your new note under
+  <em>Pages</em> and it opens with the right title. Your note from step 4
+  exists. Counter still says <strong>2 of 12 done</strong>; that changes below.</p>
+
+  <h2>What can go wrong</h2>
+  <ul class="gotchas">
+    <li><b>It says it has no rules, or skips the one-sentence explanation.</b>
+      Cursor did not load <code>AGENTS.md</code>, usually because you opened a
+      parent folder; rules are per folder. Close Cursor, run
+      <code>cursor ~\dev\workbook</code>, check Settings &rarr; Rules again.</li>
+    <li><b>It wants to run <code>npm install</code> or add an extension.</b> Rule 5
+      (line 20) says ask first. Say no. Nothing in this chapter installs anything.</li>
+    <li><b>"You've hit your limit".</b> Cursor's free plan caps requests per
+      month. Tab completions and small asks are cheap; this chapter uses about
+      eight. Tell William if you run out.</li>
+    <li><b>A one-line ask produced hundreds of changed lines.</b> It "tidied" the
+      whole file's indentation or line endings. Reject. A diff should be the
+      size of the ask; format-on-save is off in <code>.vscode/settings.json</code>
+      for this reason.</li>
+    <li><b>It apologises and does the same thing again.</b> Rephrase: name the
+      file, the line, and what not to touch. "Sorry" is not a diff.</li>
+    <li><b>The change is in the file before you clicked anything.</b> Some Cursor
+      versions write first and offer Reject after; Reject still undoes it. If
+      lost, <kbd>Ctrl</kbd>+<kbd>Z</kbd>, and from chapter 3 <code>git diff</code>
+      shows every change no matter who made it.</li>
+  </ul>
+
+  <h2>Mark it done</h2>
+  <ol class="steps">
+    <li>In <em>Agent</em> mode:
+<pre><code>Mark chapter 2 done.</code></pre>
+      <p class="expect">One sentence, then <code>index.html</code> with one red
+      line and one green line, differing only in <code>todo</code> becoming
+      <code>done</code> on the <code>data-chapter="02"</code> line. Rule 3.</p></li>
+    <li>If it touched anything else, another file, another line, something it
+      "also fixed", <strong>Reject</strong> and say why:
+<pre><code>That also changed [what it changed]. Rule 3 says one attribute. Try again.</code></pre></li>
+    <li>Accept. Save. Refresh.
+      <p class="expect">Filled box next to chapter 2. Counter says 3 of 12 done.</p></li>
+    <li>One line in <a href="../notes/til.html">Today I learned</a>, at the top.
+      You may ask the assistant to add it (rule 4 allows the top of
+      <code>til.html</code>), but type the sentence into the ask word for word.
+      It is yours.</li>
+  </ol>
+
+  <h2>Pair with William</h2>
+  <div class="checkpoint">
+    <p>You will: show the note page from step 6 and read out what the "modern"
+    ask changed that you did not ask for. Then say the rule for the rest of the
+    course: <strong>review the diff, not the explanation</strong>. The
+    explanation is what it says it did; the diff is what it did.</p>
+    <p>William will: ask "what did it change that you did not ask for?" until
+    the answer is specific. Then he asks the assistant to mark a Library item
+    seen, rejects the diff in front of you, and opens the terminal for
+    <code>git status</code> again. The list is longer than last time.</p>
+  </div>
+
+  <h2>Deliberately not in this chapter</h2>
+  <p class="dim small">No agent running ten steps on its own. No "fix
+  everything" prompts. No other AI tools. One ask, one diff, one decision, and
+  every decision is yours. The terminal stays closed except when William opens
+  it; chapter 3 gives you <code>git diff</code>, the same red and green
+  without asking anyone.</p>
+
+  <nav class="pager" aria-label="Chapter navigation"><a href="01-edit-and-refresh.html">&larr; 1. Edit the file, refresh the browser</a><a href="03-commit.html">3. Commit in the terminal &rarr;</a></nav>
+</div>
+</body>
+</html>

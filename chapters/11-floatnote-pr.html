@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>11. A real pull request to FloatNote · The Workbook</title>
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+<div class="page">
+  <nav class="site-nav" aria-label="Site">
+    <a class="brand" href="../index.html">The Workbook</a>
+    <a href="../index.html" aria-current="page">Chapters</a>
+    <a href="../library/index.html">Library</a>
+    <a href="../notes/index.html">Notes</a>
+  </nav>
+
+  <header class="chapter-header">
+    <div class="kicker"><span>Chapter 11</span><span class="badge">mechanic: FloatNote PR</span><span>4-8 hours, across a week</span></div>
+    <h1>A real pull request to FloatNote</h1>
+    <p class="lede">Someone else's repo, someone else's rules, and a change
+    that ships to real users.</p>
+  </header>
+
+  <h2>Why this chapter exists</h2>
+  <p>Everything so far happened in a repo built for you to learn in. FloatNote
+  is William's product: a notepad where any line of maths quietly gets its
+  answer down the right edge. It has users, a release process, a desktop app,
+  and a few thousand lines of code with rules you did not write. Contributing
+  to it is the point of the whole course, and the way you do it is the same
+  loop you have run eleven times: branch, small change, test, commit, PR,
+  review, merge.</p>
+  <p>What is new is the order of reading. Before you change anything, you read
+  what the project says about itself, you run its checks on a clean copy so
+  you know what "working" looks like before you touch it, and you pick a
+  change small enough to review in a minute.</p>
+
+  <h2>A story</h2>
+  <aside class="story">
+    <p class="when">FloatNote, src/docs.test.ts, August 2026</p>
+    <p>You met this file in chapter 8: the guard that fails if any example on
+    FloatNote's docs page stops computing, written after the page once lied.
+    Today you are on the other side of it. If your new example does not compute,
+    the guard refuses your PR before William sees it. That is not the project
+    being difficult. It is the reason your PR can be merged in an afternoon by
+    someone who did not watch you write it.</p>
+  </aside>
+
+  <h2>What you will do</h2>
+  <ul>
+    <li>Get a working copy of FloatNote and run its checks before changing anything.</li>
+    <li>Read its rules: <code>CLAUDE.md</code> and the invariants in <code>docs/HANDOFF.md</code>.</li>
+    <li>Pick one change from a short menu and make it, with its test.</li>
+    <li>Open the PR, get it reviewed, get it merged.</li>
+    <li>Delete the reviewer's notes from your own repo. It is yours now.</li>
+  </ul>
+
+  <h2>Do it</h2>
+  <ol class="steps">
+    <li><strong>Accept the invitation.</strong> William adds you as a collaborator
+      on <code>macro-loop/floatnote</code>. The invitation arrives by email and
+      at <a href="https://github.com/notifications">github.com/notifications</a>.
+      The repo is private, so there is no fork: you work on a branch in the
+      real repo, which is why branch names and small commits matter more here.</li>
+    <li><strong>Clone it and turn on the hook.</strong>
+<pre><code>gh repo clone macro-loop/floatnote ~\dev\floatnote
+Set-Location ~\dev\floatnote
+git config core.hooksPath .githooks
+npm ci</code></pre>
+      <p class="expect"><code>npm ci</code> installs exactly what the lockfile says
+      and takes a few minutes the first time; one package downloads from a
+      non-npm address, so it needs the internet once. The same
+      gitleaks hook as your repo, in the same place.</p></li>
+    <li><strong>Run the checks on a clean copy, before touching anything.</strong>
+<pre><code>npm run typecheck; npm run lint; npm test</code></pre>
+      <p class="expect">Three green results. The tests take a while: there are
+      about thirty suites and one of them starts a small local server on
+      purpose. Slow is not broken. Write down how long it took. If anything is
+      red on a clean checkout, stop and tell William; that is not yours to fix
+      and it is worth knowing.</p></li>
+    <li><strong>Read the rules.</strong> Open <code>CLAUDE.md</code> at the root.
+      It is short and says only what you would otherwise guess wrong. Then
+      <code>docs/HANDOFF.md</code>: read the module table once, and the numbered
+      invariants twice. An invariant is a rule the whole codebase depends on;
+      breaking one is the kind of change that gets a PR closed, not commented on.
+      <p class="expect">Two things from <code>CLAUDE.md</code> apply to you today:
+      never introduce a <code>.env</code> file, and never run <code>npx tauri</code>;
+      the desktop build needs a toolchain you do not have and is verified by
+      William before releases. Ignore the <code>src-tauri</code> folder entirely.</p></li>
+    <li><strong>Pick one change from the menu.</strong> All of these stay out of
+      the two large files (<code>engine.ts</code>, <code>editor.ts</code>) that
+      the invariants guard hardest. Choose the first one unless you have a
+      reason not to.
+      <ol>
+        <li><em>A new example in the docs.</em> <code>src/docs/07-units-tables.txt</code>
+          is a real FloatNote note shown on the docs page. Add one unit
+          conversion line to the length list, then register it in
+          <code>src/docs.test.ts</code> so the guard checks it forever.</li>
+        <li><em>A copy fix on the landing page.</em> <code>landing/index.html</code>,
+          a single self-contained file. Find a sentence you would say better.</li>
+        <li><em>A ranking case.</em> <code>src/fuzzy.test.ts</code> tests which
+          command comes first when you type a few letters. Add one
+          <code>eq(...)</code> case that documents behaviour you checked by hand
+          in the app.</li>
+        <li><em>Ambitious: a settings toggle.</em> A field in
+          <code>src/settings.ts</code> (add only, never remove; the file explains
+          why) and a row in <code>src/app-settings.ts</code> copying the
+          <code>lineNumbers</code> pattern. Talk to William before starting this
+          one.</li>
+      </ol></li>
+    <li><strong>Branch, named for the change.</strong> FloatNote uses
+      <code>docs/</code>, <code>feat/</code>, <code>fix/</code> prefixes on branches
+      the same way as on commits.
+<pre><code>git switch -c docs/units-example</code></pre></li>
+    <li><strong>Make the change (menu item 1 shown).</strong> In
+      <code>src/docs/07-units-tables.txt</code>, under the line
+      <code>6 ft + 2 inches in cm</code>, add one line:
+<pre><code>100 km in mi</code></pre>
+      No full stop at the end: the guard treats a line ending in a full stop as
+      prose, and prose must <em>not</em> compute. Check your line in the app:
+      <code>npm run dev</code>, open <code>http://localhost:1420</code>, type it,
+      and read the answer column. About 62.137.</li>
+    <li><strong>Register it with the guard.</strong> In
+      <code>src/docs.test.ts</code>, find the two existing
+      <code>answers(...)</code> lines and add yours below them:
+<pre><code>answers("0.5 btc in usd");
+answers("$500 in eth");
+answers("100 km in mi");</code></pre>
+      The string must match your docs line character for character; the test
+      reports <code>MISSING LINE</code> otherwise.
+<pre><code>npx tsx src/docs.test.ts; npm run lint</code></pre>
+      <p class="expect">One more test passes than before, and the lint is clean.
+      If lint complains about a file you did not touch, do not run
+      <code>lint:fix</code> on the whole repo: that reformats other people's
+      lines and is the first review comment you would get.</p></li>
+    <li><strong>Commit and push.</strong>
+<pre><code>git add src/docs/07-units-tables.txt src/docs.test.ts
+git commit -m "docs: add a km to mi example to the units chapter, guarded"
+git push -u origin docs/units-example</code></pre></li>
+    <li><strong>Open the PR and write it for a stranger.</strong> FloatNote has
+      no PR template, so bring your own: what changed, why, how you checked it.
+<pre><code>gh pr create --title "docs: km to mi example in the units chapter" --body "What changed: one example line in 07-units-tables.txt and its answers() guard in docs.test.ts.`n`nWhy: the length list had no metric-to-imperial example.`n`nHow I checked it: typed the line in the app (62.137 mi); npx tsx src/docs.test.ts passes; lint clean."</code></pre>
+      <p class="expect">CI runs typecheck, lint, test and build, the same four
+      you ran in step 3. Green in a few minutes.</p></li>
+    <li><strong>Review, change, merge.</strong> William reviews the way he would
+      review anyone. Expect at least one comment. Change what he asks, push
+      again, reply on the thread. When it is merged, pull <code>main</code> and
+      delete your branch, and look at the docs page on
+      <a href="https://app.floatnote.dev/docs.html">app.floatnote.dev</a> after
+      the next deploy: your line is on it.</li>
+  </ol>
+
+  <h2>Check</h2>
+  <p>Your PR is merged. <code>git log --oneline -3</code> on FloatNote's
+  <code>main</code> shows your commit. The three checks are green on a clean
+  <code>main</code> after your change, same as before it.</p>
+
+  <h2>What can go wrong</h2>
+  <ul class="gotchas">
+    <li><b>The README talks about ARM64 and a Rust toolchain.</b> That is for the
+      desktop build. Not yours; skip every step mentioning <code>tauri</code>.</li>
+    <li><b><code>npm test</code> seems stuck.</b> It is running about thirty
+      suites in a row and one starts a local server. Give it the time it took in
+      step 3 before deciding.</li>
+    <li><b><code>MISSING LINE</code> from the docs test.</b> Your string in the test
+      and the line in the docs file differ: a space, a capital, a full stop.</li>
+    <li><b><code>computes nothing</code> from the docs test.</b> The calculator
+      did not understand your line. Try it in the app; change the line, not the
+      test.</li>
+    <li><b>An <code>@</code> in your example fires a real request.</b> Lines shaped
+      like <code>@weather</code> are live in the docs page. Examples of tags must
+      be wrapped in backticks; the guard checks this too.</li>
+    <li><b>Lint touched files you never opened.</b> You ran <code>lint:fix</code>
+      across the repo. <code>git restore</code> the files you did not mean to
+      change; a PR should contain only its own idea.</li>
+    <li><b>Push rejected: protected branch.</b> You committed on <code>main</code>.
+      <code>git switch -c docs/units-example</code> carries the commit over; then
+      <code>git branch -f main origin/main</code> puts <code>main</code> back.</li>
+  </ul>
+
+  <h2>Mark it done</h2>
+  <ol class="steps">
+    <li>Tick chapter 11 on your live site. 12 of 12.</li>
+    <li>One last line in Today I learned.</li>
+    <li>Back in <code>~\dev\workbook</code>: delete the reviewer's notes and the
+      line that hid them from the AI. They were never secret; they were his.
+<pre><code>git switch -c chore/its-mine
+git rm -r for-william
+Set-Content -Path .cursorignore -Value ""
+git add .cursorignore
+git commit -m "chore: remove the reviewer notes, this repo is mine now"
+git push -u origin chore/its-mine; gh pr create --fill</code></pre>
+      William approves it. It is the last review he is required to give.</li>
+  </ol>
+
+  <h2>Pair with William</h2>
+  <div class="checkpoint">
+    <p>William's review of the FloatNote PR is the checkpoint. There is no demo
+    this time; the merge is the demo.</p>
+    <p>Then a separate conversation, not on the same day: what next. Your own
+    idea, built the same way, on the same site, under Projects. The ladder is
+    the same; only the thing being built changes.</p>
+  </div>
+
+  <h2>Deliberately not in this chapter</h2>
+  <p class="dim small">No changes to <code>engine.ts</code>, <code>editor.ts</code>,
+  <code>main.ts</code> or <code>palette.ts</code>: every one is guarded by
+  invariants and one by research that was partly wrong. No desktop build, no
+  release, no version bump. No "while I'm in here" changes. One slice.</p>
+
+  <nav class="pager" aria-label="Chapter navigation"><a href="10-portfolio.html">&larr; 10. Restructure into a portfolio</a><a href="../index.html">Chapters &rarr;</a></nav>
+</div>
+</body>
+</html>

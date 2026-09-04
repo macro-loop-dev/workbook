@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3. Commit in the terminal · The Workbook</title>
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+<div class="page">
+  <nav class="site-nav" aria-label="Site">
+    <a class="brand" href="../index.html">The Workbook</a>
+    <a href="../index.html" aria-current="page">Chapters</a>
+    <a href="../library/index.html">Library</a>
+    <a href="../notes/index.html">Notes</a>
+  </nav>
+
+  <header class="chapter-header">
+    <div class="kicker"><span>Chapter 3</span><span class="badge">mechanic: commit</span><span>2 hours</span></div>
+    <h1>Commit in the terminal</h1>
+    <p class="lede">git is a save button with a memory and a reason field.</p>
+  </header>
+
+  <h2>Why this chapter exists</h2>
+  <p><kbd>Ctrl</kbd>+<kbd>S</kbd> saves the file and forgets what it looked like
+  before. git keeps every version you tell it to keep, each with a sentence
+  about why, and shows the difference between any two. From today, nothing you
+  commit is lost.</p>
+  <p>Four words. A <em>repository</em> (repo) is your folder plus its history,
+  kept in a hidden folder called <code>.git</code>. A <em>commit</em> is one
+  saved version with a message. <em>Staging</em> is choosing which files go
+  into the next commit: a box you fill before sealing it. A <em>hook</em> is a
+  small program git runs at a fixed moment, such as just before a commit. You
+  do all of it in the terminal, because the terminal shows every step.</p>
+
+  <h2>A story</h2>
+  <aside class="story">
+    <p class="when">William's dev-setup repo, ladder.md, 2026-08-22</p>
+    <p>William's list of what to do first on any project has one rung at the
+    top: make sure a copy exists somewhere else. His note under it: "The
+    dangerous case isn't a sloppy project; it's a good one. Thorough
+    documentation, a careful test plan, months of considered decisions, about
+    to go live, and no git remote because on day one you were just trying
+    something." At the end of this chapter you will have four commits, and they
+    will exist on exactly one laptop. That is the situation his note is about.
+    Chapter 4 fixes it. Today, know that it is true.</p>
+  </aside>
+
+  <h2>What you will do</h2>
+  <ul>
+    <li>See what git thinks has changed since you cloned.</li>
+    <li>Commit the work from chapters 0 to 2, in two commits with real messages.</li>
+    <li>Turn on the secret scanner, try to commit a fake key, get refused.</li>
+    <li>Mark this chapter done with one commit of one line.</li>
+  </ul>
+
+  <h2>Do it</h2>
+  <ol class="steps">
+    <li><strong>Open the terminal inside Cursor.</strong> <kbd>Ctrl</kbd>+<kbd>`</kbd>
+      (the key under Esc). Check which shell and which folder:
+<pre><code>$PSVersionTable.PSVersion
+Get-Location</code></pre>
+      <p class="expect">A version starting with 7, and
+      <code>C:\Users\&lt;you&gt;\dev\workbook</code>. If not:
+      <code>Set-Location ~\dev\workbook</code>. Everything below is typed here.</p></li>
+    <li><strong>What changed since you cloned?</strong>
+<pre><code>git status</code></pre>
+      <p class="expect">Something like:</p>
+<pre><code>On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes not staged for commit:
+  (use "git add &lt;file&gt;..." to update what will be committed)
+  (use "git restore &lt;file&gt;..." to discard changes in working directory)
+        modified:   index.html
+        modified:   library/index.html
+        modified:   notes/index.html
+        modified:   notes/til.html
+
+Untracked files:
+  (use "git add &lt;file&gt;..." to include in what will be committed)
+        notes/2026-MM-DD-the-file-is-the-site.html
+        notes/2026-MM-DD-what-a-diff-is.html
+
+no changes added to commit (use "git add" and/or "git commit -a")</code></pre>
+      <em>Modified</em>: git knows the file and it differs from the last commit.
+      <em>Untracked</em>: git has never seen it. <code>origin/main</code> is
+      GitHub's copy; "up to date" is about commits only, and you have made none.</li>
+    <li><strong>Read the diff.</strong>
+<pre><code>git diff index.html</code></pre>
+      <p class="expect">Header lines, then blocks starting <code>@@</code>. Lines
+      with <code>-</code> are red, the old version; <code>+</code> green, the
+      new. You will recognise the three <code>data-status</code> lines and the
+      chapter 2 paragraph. Same colours as Cursor's panel, nobody's opinion in
+      between. If a <code>:</code> sits at the bottom of the screen, press
+      <kbd>q</kbd>.</p></li>
+    <li><strong>Stage the file.</strong>
+<pre><code>git add index.html; git status</code></pre>
+      <p class="expect"><code>index.html</code> moved up to "Changes to be
+      committed", green. It is in the box. Nothing is saved yet.</p></li>
+    <li><strong>Commit it.</strong>
+<pre><code>git commit -m "docs: mark chapters 0 to 2 done and say who this is for"</code></pre>
+      <p class="expect"><code>[main 3c9a1d4] docs: mark chapters 0 to 2 done and say who this is for</code>
+      then <code>1 file changed, 4 insertions(+), 3 deletions(-)</code>; your
+      numbers may differ by one. <code>3c9a1d4</code> is the commit's id, the
+      first seven characters of a long code; nobody types them.</p>
+      The message starts with <code>docs:</code>. This repo and FloatNote use
+      three prefixes: <code>feat:</code> a new thing, <code>fix:</code>
+      something wrong is now right, <code>docs:</code> text, pages and notes,
+      which is everything here for now. Colon, space, one short sentence.</li>
+    <li><strong>Commit the notes and the Library change.</strong> Naming a
+      folder stages everything inside it, new files included.
+<pre><code>git add notes library; git commit -m "docs: first notes and one library item seen"</code></pre>
+      <p class="expect"><code>5 files changed</code>, and two lines starting
+      <code>create mode 100644 notes/2026-</code>: the new pages.</p></li>
+    <li><strong>Look at the history.</strong>
+<pre><code>git log --oneline</code></pre>
+      <p class="expect">Newest first. Your two on top, the first marked
+      <code>(HEAD -&gt; main)</code>. Below, the commits that were there when
+      you cloned; the top of those is marked <code>(origin/main, origin/HEAD)</code>.
+      <code>HEAD</code> is where you are; <code>origin/main</code> is where
+      GitHub's copy is. Two commits apart, and GitHub does not know.</p></li>
+    <li><strong>Turn on the hook.</strong> Open <code>.githooks/pre-commit</code>
+      in Cursor: four lines, the last runs <code>gitleaks</code>, which scans
+      for anything shaped like a password or key. Cloning does not switch hooks
+      on. This does, for this folder only:
+<pre><code>git config core.hooksPath .githooks; git config core.hooksPath; gitleaks version</code></pre>
+      <p class="expect"><code>.githooks</code>, then a version starting with 8.</p></li>
+    <li><strong>Plant a fake key.</strong> gitleaks looks for shapes. A real
+      GitHub token is <code>ghp_</code> plus 36 letters and digits. This one is
+      made up: never issued to anyone, opens nothing. It is written in two
+      halves joined with <code>+</code> because this chapter lives in the same
+      repo, and the scanner would refuse this very page if it were whole.
+<pre><code>Set-Content -Path scratch.txt -Value ('github_token = "ghp_' + 'cI3qS7xOX7ZRdDOU7RcflxMNwhusuWJnVDQv' + '"')
+Get-Content scratch.txt</code></pre>
+      <p class="expect">One line, the halves joined into one token.</p></li>
+    <li><strong>Try to commit it.</strong>
+<pre><code>git add scratch.txt; git commit -m "test: try to commit a fake key"</code></pre>
+      <p class="expect">A small gitleaks logo, then:</p>
+<pre><code>Finding:     github_token = "REDACTED"
+Secret:      REDACTED
+RuleID:      github-pat
+Entropy:     4.853056
+File:        scratch.txt
+Line:        1
+Fingerprint: scratch.txt:github-pat:1
+
+9:43PM INF 0 commits scanned.
+9:43PM INF scanned ~58 bytes (58 bytes) in 240ms
+9:43PM WRN leaks found: 1</code></pre>
+      <p class="expect">No <code>[main ...]</code> line: the commit did not happen,
+      and <code>git log --oneline</code> shows nothing new. Notice
+      <code>REDACTED</code>: the hook will not even print what it found.</p>
+      git has a flag that skips hooks. You are not going to learn it, and
+      chapter 4 runs this same scan on GitHub's computers for the people who do.</li>
+    <li><strong>Clean up.</strong> Out of the box, then delete.
+<pre><code>git restore --staged scratch.txt; Remove-Item scratch.txt; git status</code></pre>
+      <p class="expect"><code>nothing to commit, working tree clean</code>.</p></li>
+  </ol>
+
+  <h2>Check</h2>
+  <p><code>git log --oneline</code> shows two commits of yours above the one
+  marked <code>origin/main</code>. <code>git config core.hooksPath</code>
+  prints <code>.githooks</code>. <code>git status</code> is clean.
+  <code>Test-Path scratch.txt</code> prints <code>False</code>.</p>
+
+  <h2>What can go wrong</h2>
+  <ul class="gotchas">
+    <li><b>The fake key committed with no gitleaks lines.</b> The hook is not on
+      in this folder: you ran step 8 somewhere else. Check
+      <code>Get-Location</code>, redo step 8 inside <code>~\dev\workbook</code>,
+      then undo that commit but keep the file, <code>git reset --soft HEAD~1</code>,
+      and do step 11.</li>
+    <li><b><code>.githooks/pre-commit: line 4: gitleaks: command not found</code>.</b>
+      The hook runs in git's own small shell, which finds programs the same way
+      your terminal does. Make sure <code>gitleaks version</code> works in
+      PowerShell first (chapter 0's first gotcha). If it does and the hook still
+      fails, close Cursor completely and reopen: its terminal inherits the
+      program list from the moment Cursor started.</li>
+    <li><b>"LF will be replaced by CRLF", or the reverse.</b> Windows has
+      historically ended lines with two invisible characters; everything else
+      uses one. <code>.gitattributes</code> says this repo uses one, and the
+      warning means git will convert. Harmless.</li>
+    <li><b>Wrong name or email on the commit.</b> <code>git log -1</code> shows
+      the author. Fix the setting, then the last commit:
+      <code>git config --global user.email "you@example.com"; git commit --amend --reset-author --no-edit</code>.</li>
+    <li><b>A screen full of <code>~</code> and no prompt.</b> You forgot
+      <code>-m</code> and git opened an editor called vim. <kbd>Esc</kbd>, type
+      <code>:q!</code>, <kbd>Enter</kbd>. Always use <code>-m</code>.</li>
+    <li><b>Cursor's Source Control panel offers a tick and a number.</b> Same
+      git, with <code>add</code> and the hook output hidden. This chapter and
+      the next: terminal only.</li>
+  </ul>
+
+  <h2>Mark it done</h2>
+  <ol class="steps">
+    <li>Change <code>data-status</code> on the <code>data-chapter="03"</code> line
+      of <code>index.html</code> to <code>done</code>. By hand or by asking:
+      your choice from now on.</li>
+    <li>Look before you commit:
+<pre><code>git diff</code></pre>
+      <p class="expect">Exactly one <code>-</code> line and one <code>+</code>
+      line. More means something else changed; find out what first.</p></li>
+    <li>Commit, through the hook this time:
+<pre><code>git add index.html; git commit -m "docs: mark chapter 3 done"</code></pre>
+      <p class="expect">The logo, <code>no leaks found</code>, then
+      <code>[main ...] docs: mark chapter 3 done</code> and
+      <code>1 file changed, 1 insertion(+), 1 deletion(-)</code>.</p></li>
+    <li>One line in <a href="../notes/til.html">Today I learned</a>, at the top.
+      Commit that too, so nothing is left hanging:
+<pre><code>git add notes/til.html; git commit -m "docs: til for chapter 3"; git status</code></pre>
+      <p class="expect">Working tree clean. Refresh the browser: 4 of 12 done.</p></li>
+    <li>Say it out loud: four commits, one laptop.</li>
+  </ol>
+
+  <h2>Pair with William</h2>
+  <div class="checkpoint">
+    <p>You will: run <code>git log --oneline</code> and read the four commits
+    from the bottom up, saying what each contains. Explain what the hook did
+    with the fake key. Then guess where a second copy of that check should
+    live, and why.</p>
+    <p>William will: read the log with you (<code>git log --stat</code> shows
+    the files in each commit); open the hook file; and ask what happens to
+    these four commits if the laptop falls in a river.</p>
+  </div>
+
+  <h2>Deliberately not in this chapter</h2>
+  <p class="dim small">No push. No branches. No <code>git commit -a</code>, no
+  Source Control panel, no undo beyond the one in the gotchas. Nothing today
+  leaves the laptop. That is the whole discomfort of this chapter, and chapter
+  4 is the fix.</p>
+
+  <nav class="pager" aria-label="Chapter navigation"><a href="02-ask-the-ai.html">&larr; 2. Ask the AI, review the diff</a><a href="04-push-and-pr.html">4. Push and open a pull request &rarr;</a></nav>
+</div>
+</body>
+</html>

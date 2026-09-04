@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>4. Push and open a pull request · The Workbook</title>
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+<div class="page">
+  <nav class="site-nav" aria-label="Site">
+    <a class="brand" href="../index.html">The Workbook</a>
+    <a href="../index.html" aria-current="page">Chapters</a>
+    <a href="../library/index.html">Library</a>
+    <a href="../notes/index.html">Notes</a>
+  </nav>
+
+  <header class="chapter-header">
+    <div class="kicker"><span>Chapter 4</span><span class="badge">mechanic: push + PR</span><span>2 hours</span></div>
+    <h1>Push and open a pull request</h1>
+    <p class="lede">A remote is a backup and a conversation.</p>
+  </header>
+
+  <h2>Why this chapter exists</h2>
+  <p>Your four commits exist on one hard drive. A <em>remote</em> is a second
+  copy of the repo on another computer; here GitHub, which your repo already
+  calls <code>origin</code>. <em>Pushing</em> copies commits there. That is the
+  backup half.</p>
+  <p>The conversation half: a remote is also where two people change the same
+  files without overwriting each other. You put your change on a
+  <em>branch</em>, a named line of commits that starts from <code>main</code>
+  and can be joined back later. You open a <em>pull request</em> (PR), a page
+  on GitHub that shows the branch's diff and asks for it to be joined into
+  <code>main</code>. Someone reads it, comments, approves. Joining is a
+  <em>merge</em>. Today you go both directions: your first PR, and your first
+  review of someone else's.</p>
+
+  <h2>A story</h2>
+  <aside class="story">
+    <p class="when">William's dev-setup repo, HANDOFF.md, 2026-08-24</p>
+    <p>The handoff file for William's setup repo lists five things that must
+    never break. Number two: "No secret in the repo, ever. The gitleaks
+    pre-commit hook catches the key-shaped cases and CI re-runs it, because
+    hooks are local and bypassable." Chapter 3's hook lives on your laptop and
+    one flag turns it off. The workflow file in this repo,
+    <code>.github/workflows/gates.yml</code>, carries a comment: "This is the
+    copy that cannot be skipped." Today you watch it run.</p>
+  </aside>
+
+  <h2>What you will do</h2>
+  <ul>
+    <li>Make a branch, mark the chapter done on it, push it.</li>
+    <li>Open a pull request and watch the first automatic check run.</li>
+    <li>Review a pull request William opened for you: read, approve, merge.</li>
+    <li>Push a second commit and see the PR update; then survive one review comment.</li>
+  </ul>
+
+  <h2>Do it</h2>
+  <ol class="steps">
+    <li><strong>Start clean, on main.</strong> Terminal in Cursor, inside
+      <code>~\dev\workbook</code>:
+<pre><code>git status; git log --oneline -1</code></pre>
+      <p class="expect">"working tree clean", and the commit shown is marked
+      <code>(HEAD -&gt; main)</code>. Uncommitted changes: commit them first,
+      the chapter 3 way.</p></li>
+    <li><strong>Make a branch.</strong> Names are lower-case letters, digits and
+      hyphens; in this course, <code>chapter-N</code>.
+<pre><code>git switch -c chapter-4; git log --oneline -1</code></pre>
+      <p class="expect"><code>Switched to a new branch 'chapter-4'</code>, and the
+      top commit is now marked <code>(HEAD -&gt; chapter-4, main)</code>: one
+      commit, two names. A branch is only a name until you commit on it.</p></li>
+    <li><strong>Mark chapter 4 done, on the branch.</strong> Change the
+      attribute on the <code>data-chapter="04"</code> line, by hand or by
+      asking. Then:
+<pre><code>git diff; git add index.html; git commit -m "docs: mark chapter 4 done"</code></pre>
+      <p class="expect">One red line, one green; the logo and
+      <code>no leaks found</code>; then <code>[chapter-4 ...] docs: mark chapter 4 done</code>.
+      The name in the brackets changed.</p></li>
+    <li><strong>Push the branch.</strong>
+<pre><code>git push -u origin chapter-4</code></pre>
+      <p class="expect">Some counting lines, then:</p>
+<pre><code>remote: Create a pull request for 'chapter-4' on GitHub by visiting:
+remote:      https://github.com/macro-loop-dev/workbook/pull/new/chapter-4
+remote:
+To https://github.com/macro-loop-dev/workbook.git
+ * [new branch]      chapter-4 -&gt; chapter-4
+branch 'chapter-4' set up to track 'origin/chapter-4'.</code></pre>
+      <p class="expect">If a window asks you to sign in to GitHub, choose "Sign
+      in with your browser". Once.</p>
+      <code>-u</code> pairs this branch with <code>origin/chapter-4</code>, so
+      from now on <code>git push</code> alone is enough. Five commits now exist
+      on two computers. Chapter 3's four came along: a push sends every commit
+      the remote does not have yet.</li>
+    <li><strong>Open the pull request.</strong> <code>gh</code> is the GitHub
+      command from chapter 0.
+<pre><code>gh pr create --fill</code></pre>
+<pre><code>Creating pull request for chapter-4 into main in macro-loop-dev/workbook
+
+https://github.com/macro-loop-dev/workbook/pull/7</code></pre>
+      <p class="expect">Your number will differ. Read the first line: from
+      <code>chapter-4</code>, into <code>main</code>. <code>--fill</code> makes
+      the title from the branch name ("chapter 4") and the description from
+      your commit messages. The web way is <code>gh pr create --web</code>: the
+      same form in the browser, with the repo's description template already
+      in it. Either works.</p></li>
+    <li><strong>Read your own PR, then write it for a reader.</strong>
+<pre><code>gh pr view --web</code></pre>
+      The description lists five commits, four from chapter 3: a PR is
+      "everything on this branch that <code>main</code> does not have", and
+      GitHub's <code>main</code> never got those. <em>Files changed</em> is
+      the diff of all five together. Now the three dots on the description
+      &rarr; <em>Edit</em>: above the list, paste the three headings from
+      <code>.github/pull_request_template.md</code> (<em>What changed</em>,
+      <em>Why</em>, <em>How I checked it</em>) and answer each in one line.
+      Save. The reader is William.</li>
+    <li><strong>Watch the check.</strong> Back in the terminal:
+<pre><code>gh pr checks --watch</code></pre>
+      <p class="expect">One row named <code>secrets</code>: <code>pending</code>,
+      then after half a minute or so <code>pass</code>, and "All checks were
+      successful".</p>
+      This is <em>CI</em>, continuous integration: on every push, a computer at
+      GitHub clones your branch and runs the checks listed in
+      <code>.github/workflows/gates.yml</code>. Today that is gitleaks over
+      every commit, the same scan as your hook, on a machine you cannot switch
+      off. Your first green check. The PR page shows it next to a yellow
+      "Review required": <code>main</code> is protected, and William must
+      approve before anything joins it.</li>
+    <li><strong>Your first review.</strong> William opened a PR yesterday adding
+      one Library item. Find it, read its diff:
+<pre><code>gh pr list</code></pre>
+      <p class="expect">A row like <code>#6  Library: &lt;title&gt;  share/&lt;slug&gt;</code>
+      above yours. Use its number below.</p>
+<pre><code>gh pr diff 6</code></pre>
+      <p class="expect">One green line in <code>library/index.html</code>: a new
+      <code>&lt;li data-added="..." data-seen="no"&gt;</code> at the end of a section.</p>
+      Ask what a reviewer asks: one line? the shape the comment on line 29 of
+      <code>library/index.html</code> shows? does the link open? is
+      <code>data-seen</code> <code>no</code>? If all yes:
+      <code>gh pr view 6 --web</code>, then <em>Files changed</em> &rarr;
+      <em>Review changes</em> &rarr; <em>Approve</em> &rarr; <em>Submit review</em>;
+      then <em>Conversation</em> &rarr; <em>Merge pull request</em> (it must say
+      <em>Create a merge commit</em>) &rarr; <em>Confirm merge</em>. Delete the
+      branch if offered: the commits are in <code>main</code>, the name is not
+      needed. The terminal way, for later:
+      <code>gh pr review 6 --approve; gh pr merge 6 --merge</code>. If
+      something is wrong, <em>Request changes</em> instead, and say what.</li>
+    <li><strong>See what moved where.</strong>
+<pre><code>git fetch origin; git log --oneline --all --graph</code></pre>
+      <p class="expect">A drawn graph. <code>origin/main</code> is now on a
+      commit called <code>Merge pull request #6 ...</code>; your
+      <code>chapter-4</code> line branches off below it; your laptop's
+      <code>main</code> has not moved. <code>fetch</code> downloads without
+      changing your files. Do not <code>git pull</code> today: your
+      <code>main</code> holds chapter 3's commits that GitHub's does not, and a
+      pull cannot line the two up until your PR merges in chapter 5. William's
+      item is on GitHub now, and on your laptop after that.</p></li>
+  </ol>
+
+  <h2>Check</h2>
+  <p><code>gh pr status</code> shows your PR under "Current branch" with
+  "Checks passing". On GitHub, your PR is open with a green check and
+  William's is purple, "Merged". <code>git branch --show-current</code> prints
+  <code>chapter-4</code>. Your browser says 5 of 12 done; <code>index.html</code>
+  on GitHub's <code>main</code> still says 0 of 12. Both are true. Chapter 5
+  makes them agree.</p>
+
+  <h2>What can go wrong</h2>
+  <ul class="gotchas">
+    <li><b><code>! [remote rejected] main -&gt; main (protected branch hook declined)</code>,
+      with <code>GH006</code>.</b> You pushed <code>main</code> directly. That is
+      the protection working: <code>main</code> only accepts merges from pull
+      requests. Make the branch and push that.</li>
+    <li><b><code>Everything up-to-date</code> and the PR has no commits.</b> You
+      committed on <code>main</code>, not <code>chapter-4</code>;
+      <code>git log --oneline --all --graph</code> shows it. Ask William: the
+      fix is three commands and easy to get wrong alone.</li>
+    <li><b><code>gh</code> tells you to run <code>gh auth login</code>.</b> This
+      terminal is not logged in. <code>gh auth status</code>, then chapter 0's
+      login step.</li>
+    <li><b>A "Sign in to GitHub" window at push time.</b> Git Credential Manager.
+      Choose the browser option; never a password, GitHub does not accept one
+      for pushes.</li>
+    <li><b>The PR says "into" something other than <code>main</code>.</b> Close it
+      on GitHub and run <code>gh pr create --fill --base main</code>.</li>
+    <li><b>Branch name typo.</b> Before pushing, <code>git branch -m chapter-4</code>
+      renames it. After pushing, tell William; it is a rename on both sides.</li>
+    <li><b>The check turned red.</b> <em>Details</em> shows a log ending in a
+      <code>Finding:</code> block like chapter 3's: a secret-shaped string is in
+      some commit. Do not pile on more commits; ask William.</li>
+  </ul>
+
+  <h2>Mark it done</h2>
+  <p>The attribute edit is already in your PR. Three things remain.</p>
+  <ol class="steps">
+    <li>One line in <a href="../notes/til.html">Today I learned</a>, at the top.
+      Commit it on the branch and push; no <code>-u</code> this time.
+<pre><code>git add notes/til.html; git commit -m "docs: til for chapter 4"; git push</code></pre>
+      <p class="expect">Refresh the PR page: six commits, and the check is
+      running again. That is the loop for the rest of the course: commit, push,
+      the PR updates, the checks re-run.</p></li>
+    <li>At the checkpoint William leaves one comment asking for one change.
+      Make it, commit with a <code>docs:</code> message, push. Refresh: the
+      comment now sits on an older version, and there is a new commit.</li>
+    <li>William approves. <strong>Do not merge.</strong> Merging is chapter 5,
+      because merging does something you have not seen yet.</li>
+  </ol>
+
+  <h2>Pair with William</h2>
+  <div class="checkpoint">
+    <p>You will: walk through your PR page: which commits it has and why four
+    are older than today, what the green check ran and where, what "Review
+    required" means. Then show William's merged PR and say what you checked
+    before approving.</p>
+    <p>William will: review your PR for real: one comment on one line under
+    <em>Files changed</em>; wait for you to fix it and push; then approve. He
+    will explain <code>.github/pull_request_template.md</code> and why its
+    three headings are in that order. He will not merge.</p>
+  </div>
+
+  <h2>Deliberately not in this chapter</h2>
+  <p class="dim small">No merge of your own PR; that is chapter 5. No website:
+  nothing you pushed today is visible anywhere except GitHub. No rebase, no
+  squash, no force-push; if you meet those words somewhere, the answer for now
+  is "not yet".</p>
+
+  <nav class="pager" aria-label="Chapter navigation"><a href="03-commit.html">&larr; 3. Commit in the terminal</a><a href="05-merge-and-ship.html">5. Merge and ship &rarr;</a></nav>
+</div>
+</body>
+</html>

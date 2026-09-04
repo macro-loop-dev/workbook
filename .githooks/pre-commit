@@ -1,0 +1,4 @@
+#!/bin/sh
+# Block any commit that stages a secret-shaped string.
+# Requires gitleaks (installed by configuration.dsc.yaml / winget).
+gitleaks git --pre-commit --staged --redact -v

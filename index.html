@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Workbook</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="page">
+  <nav class="site-nav" aria-label="Site">
+    <a class="brand" href="index.html">The Workbook</a>
+    <a href="index.html" aria-current="page">Chapters</a>
+    <a href="library/index.html">Library</a>
+    <a href="notes/index.html">Notes</a>
+  </nav>
+
+  <h1>The Workbook</h1>
+  <p class="lede">This page is the workbook and the scoreboard. It is a website
+  you are going to build, and the only thing that changes when you finish a
+  chapter is one word in this file.</p>
+
+  <p>Every chapter ends the same way: you mark it done. What changes is <em>how</em>
+  you are allowed to do that. In chapter 1 you edit this file by hand. By chapter 5
+  the edit goes through a pull request and deploys to a real website. By chapter 9
+  nothing in this file changes at all, because the answer lives in a database you
+  built. That ladder is the whole course.</p>
+
+  <!-- THE PROGRESS MODEL.
+       Each <li> below carries data-status="todo" or "done". Nothing else tracks
+       progress. The counter under the list is drawn by CSS from these attributes
+       (see .chapters in styles.css). Chapter 1 explains this; chapter 7 makes it
+       interactive; chapter 8 moves it to JSON; chapter 9 moves it to a database. -->
+  <ol class="chapters progress">
+    <li data-chapter="00" data-status="todo"><span class="num">0</span><a href="chapters/00-setup.html">Set up the machine</a><span class="meta"><span class="badge">watch</span><span>2-3 h</span></span></li>
+    <li data-chapter="01" data-status="todo"><span class="num">1</span><a href="chapters/01-edit-and-refresh.html">Edit the file, refresh the browser</a><span class="meta"><span class="badge">edit + refresh</span><span>1 h</span></span></li>
+    <li data-chapter="02" data-status="todo"><span class="num">2</span><a href="chapters/02-ask-the-ai.html">Ask the AI, review the diff</a><span class="meta"><span class="badge">ask the AI</span><span>1-2 h</span></span></li>
+    <li data-chapter="03" data-status="todo"><span class="num">3</span><a href="chapters/03-commit.html">Commit in the terminal</a><span class="meta"><span class="badge">commit</span><span>2 h</span></span></li>
+    <li data-chapter="04" data-status="todo"><span class="num">4</span><a href="chapters/04-push-and-pr.html">Push and open a pull request</a><span class="meta"><span class="badge">push + PR</span><span>2 h</span></span></li>
+    <li data-chapter="05" data-status="todo"><span class="num">5</span><a href="chapters/05-merge-and-ship.html">Merge and ship</a><span class="meta"><span class="badge">merge = deploy</span><span>1 h</span></span></li>
+    <li data-chapter="06" data-status="todo"><span class="num">6</span><a href="chapters/06-your-domain.html">A domain of your own</a><span class="meta"><span class="badge">your domain</span><span>1-2 h</span></span></li>
+    <li data-chapter="07" data-status="todo"><span class="num">7</span><a href="chapters/07-javascript.html">JavaScript makes it interactive</a><span class="meta"><span class="badge">JavaScript</span><span>3-4 h</span></span></li>
+    <li data-chapter="08" data-status="todo"><span class="num">8</span><a href="chapters/08-build-step.html">A build step</a><span class="meta"><span class="badge">build + tests</span><span>4-6 h</span></span></li>
+    <li data-chapter="09" data-status="todo"><span class="num">9</span><a href="chapters/09-server-side.html">Save progress on the server</a><span class="meta"><span class="badge">server + database</span><span>6-8 h</span></span></li>
+    <li data-chapter="10" data-status="todo"><span class="num">10</span><a href="chapters/10-portfolio.html">Restructure into a portfolio</a><span class="meta"><span class="badge">portfolio</span><span>4-6 h</span></span></li>
+    <li data-chapter="11" data-status="todo"><span class="num">11</span><a href="chapters/11-floatnote-pr.html">A real pull request to FloatNote</a><span class="meta"><span class="badge">FloatNote PR</span><span>4-8 h</span></span></li>
+  </ol>
+
+  <h2>How to use this</h2>
+  <p>Read a chapter top to bottom once before doing anything. Then do it, one
+  numbered step at a time. Every chapter has the same nine sections in the same
+  order, so by chapter 3 you will stop reading the headings.</p>
+  <p>Two other pages: the <a href="library/index.html">Library</a> is things
+  William thinks are worth your time, each with one line on why. The
+  <a href="notes/index.html">Notes</a> are yours: a log of what you learned,
+  cheat sheets you build as you go, and a glossary. Every chapter ends with one
+  line in the log.</p>
+
+  <h2>Deliberately not on this page</h2>
+  <p class="dim small">No JavaScript. No framework. No tracker. The counter above
+  is drawn by CSS from the <code>data-status</code> attributes in this file, and
+  that is all there is until chapter 7.</p>
+</div>
+</body>
+</html>

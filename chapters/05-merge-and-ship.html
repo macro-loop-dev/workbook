@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5. Merge and ship · The Workbook</title>
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+<div class="page">
+  <nav class="site-nav" aria-label="Site">
+    <a class="brand" href="../index.html">The Workbook</a>
+    <a href="../index.html" aria-current="page">Chapters</a>
+    <a href="../library/index.html">Library</a>
+    <a href="../notes/index.html">Notes</a>
+  </nav>
+
+  <header class="chapter-header">
+    <div class="kicker"><span>Chapter 5</span><span class="badge">mechanic: merge = deploy</span><span>1 hour, plus waiting</span></div>
+    <h1>Merge and ship</h1>
+    <p class="lede"><code>main</code> is the live site. Merging is deploying.
+    There is no separate "publish" step, and there never will be.</p>
+  </header>
+
+  <h2>Why this chapter exists</h2>
+  <p>Until now your site has lived in two places: the folder on your laptop
+  and the copy on GitHub. Nobody could visit either. At the last checkpoint
+  William connected a third place, Cloudflare Pages, and told it one thing:
+  <em>whenever the <code>main</code> branch changes, copy it to the internet</em>.
+  That sentence is the whole of "deploying". <strong>Deploy</strong> means
+  putting a version of the site where other people's browsers can reach it.</p>
+  <p>Your chapter-4 pull request is still open, approved but not merged. When
+  you press Merge, <code>main</code> changes, Cloudflare notices, and a minute
+  later your phone can see it. Every chapter from here on ends with that
+  minute.</p>
+
+  <h2>A story</h2>
+  <aside class="story">
+    <p class="when">FloatNote's DEPLOYMENT.md, 2026-08-23</p>
+    <p>FloatNote went live on the web at <code>floatnote.dev</code>. The next day
+    William moved it to <code>app.floatnote.dev</code>. Not because anything was
+    broken: because a browser ties everything it remembers for a site (saved
+    notes, an installed app icon, offline files) to the exact address, which
+    is called the <strong>origin</strong>. Move the address and all of that is
+    left behind. With zero users the move cost one afternoon. With a thousand
+    users it would have cost each of them their notes. Decisions about
+    addresses get expensive fast, which is why the next chapter, the one where
+    you pick your address, comes right after this one.</p>
+  </aside>
+
+  <h2>What you will do</h2>
+  <ul>
+    <li>Merge your chapter-4 pull request on GitHub and read what the button says.</li>
+    <li>Watch Cloudflare notice, copy, and finish, in its dashboard.</li>
+    <li>Open the live site on your phone.</li>
+    <li>Bring your laptop's <code>main</code> up to date and delete the finished branch.</li>
+    <li>Do the whole loop again for chapter 5, this time also looking at the preview address.</li>
+  </ul>
+
+  <h2>Do it</h2>
+  <ol class="steps">
+    <li><strong>Open your pull request.</strong> In PowerShell 7, inside the repo:
+<pre><code>cd ~\dev\workbook; gh pr view chapter-4 --web</code></pre>
+      Your browser opens the PR. At the bottom: a green tick from William's
+      review, a green tick from the <em>gitleaks</em> check, and a green
+      <em>Merge pull request</em> button.</li>
+    <li><strong>Look at the live site first.</strong> Open the address that ends
+      in <code>.pages.dev</code>. It is printed at the top of the project's page
+      in the Cloudflare dashboard, and William has it written down.
+      <p class="expect">A lower number than your laptop shows, probably
+      <strong>0 of 12 done</strong>. The live site is built from <code>main</code>,
+      and none of your commits are on <code>main</code> yet. They are all on
+      the branch, waiting.</p></li>
+    <li><strong>Merge.</strong> Click <em>Merge pull request</em>. The button
+      offers only one kind, <em>Create a merge commit</em>: William turned the
+      others off. A <strong>merge commit</strong> is an ordinary commit with two
+      parents, "main as it was" and "your branch as it ended". Click
+      <em>Confirm merge</em>.
+      <p class="expect">Purple "Merged" badge. Click <em>Delete branch</em>: that
+      is GitHub's copy of <code>chapter-4</code> only. Your laptop's copy is step 8.</p></li>
+    <li><strong>Watch it deploy.</strong> In the Cloudflare dashboard (menus as of
+      2026-09-02; William has the click paths in his <code>for-william/dashboard-clicks.md</code>):
+      <em>Workers &amp; Pages</em> &rarr; <em>workbook</em> &rarr; <em>Deployments</em>.
+      A new row appears at the top, labelled <em>Production</em>, with your
+      merge commit's message next to it. Its status goes
+      <em>Queued</em> &rarr; <em>Building</em> &rarr; <em>Success</em>. Click the
+      row to read the log.
+      <p class="expect">About a minute. The log says there was no build command
+      and it uploaded your files as they are. That is correct until chapter 8.</p></li>
+    <li><strong>Refresh the live site.</strong> Same <code>.pages.dev</code> address.
+      <p class="expect"><strong>5 of 12 done.</strong> Chapters 0 to 4, exactly what
+      your laptop says. What happened in between: GitHub told Cloudflare that
+      <code>main</code> moved; Cloudflare fetched the repo, took the files, and
+      copied them to its servers in many countries. That network of copies is
+      a <strong>CDN</strong>, and it is why the site is fast from anywhere.</p></li>
+    <li><strong>Open it on your phone.</strong> Type the same address. Any
+      network, not just home Wi-Fi.
+      <p class="expect">5 of 12. Your phone has never seen your laptop's folder.
+      This is the first time the site exists somewhere you did not put it.</p></li>
+    <li><strong>Bring your laptop up to date.</strong> Your laptop's <code>main</code>
+      does not know about the merge yet.
+<pre><code>git switch main; git pull</code></pre>
+      <p class="expect">A few lines ending in <code>Fast-forward</code>, then a list
+      of changed files. <strong>Fast-forward</strong> means your <code>main</code>
+      simply moved ahead to where GitHub's is, because it was a straight line:
+      nothing on your side that GitHub did not already have.</p></li>
+    <li><strong>Look at the shape of it.</strong>
+<pre><code>git log --oneline --graph -6</code></pre>
+      <p class="expect">The top line is <code>Merge pull request #N from ...</code>,
+      with a fork in the drawing under it where your branch joins. Then:</p>
+<pre><code>git branch -d chapter-4</code></pre>
+      <p class="expect"><code>Deleted branch chapter-4 (was abc1234)</code>. The
+      commits are still there, inside <code>main</code>. A branch is only a
+      name pointing at a commit; you deleted the name.</p></li>
+  </ol>
+
+  <h2>Check</h2>
+  <p>Three things, in this order:</p>
+<pre><code>git status
+git branch
+git log --oneline -3</code></pre>
+  <p><code>git status</code> says <em>On branch main</em> and <em>Your branch is
+  up to date with 'origin/main'</em>. <code>git branch</code> lists only
+  <code>main</code>. The top of the log is the merge commit. And the
+  <code>.pages.dev</code> address, on the laptop and on the phone, says
+  <strong>5 of 12 done</strong>.</p>
+
+  <h2>What can go wrong</h2>
+  <ul class="gotchas">
+    <li><b>The Merge button is grey.</b> Read the text next to it. Either the
+      review is missing (William has not approved this version) or a check is
+      still running (yellow dot). Both are the protection William set up in
+      chapter 4 doing its job. Wait, or ask.</li>
+    <li><b><code>git pull</code> says "Not possible to fast-forward" or "You have
+      divergent branches".</b> GitHub merged in a way that rewrote your commits
+      (a setting on the repo, not something you did). Stop. Do not type
+      <code>git pull --rebase</code> or anything with <code>--force</code> because a
+      web page suggested it. Ask William; the fix is his, and it is two commands.</li>
+    <li><b>Deployment says Success but the site is old.</b> Press
+      <kbd>Ctrl</kbd>+<kbd>F5</kbd> for a hard refresh, which ignores the
+      browser's saved copy. Still old? Wait one minute. The CDN's copies update
+      one by one and the one near you can be last.</li>
+    <li><b>Deployment says Failed.</b> Open the log. If it says the output
+      directory <code>dist</code> was not found, the build settings were changed
+      early (that directory only exists from chapter 8). William fixes it in
+      the dashboard; nothing in your files is wrong.</li>
+    <li><b>You merged but the counter did not move.</b> Look at the address bar.
+      If there is a branch name at the front, like
+      <code>chapter-5.something.pages.dev</code>, you are on a <em>preview</em>, not
+      production. Previews are explained in Mark it done, step 4.</li>
+    <li><b>Your phone shows an older version than your laptop.</b> It is on a
+      different network and talks to a different copy. Wait a minute and pull
+      down to refresh.</li>
+    <li><b><code>git branch -d</code> refuses: "not fully merged".</b> You skipped
+      <code>git pull</code>. Pull, then delete. Do not use capital <code>-D</code>
+      to make the message go away; it deletes without checking.</li>
+  </ul>
+
+  <h2>Mark it done</h2>
+  <p>The loop from chapter 4, plus the deploy at the end. This is the loop for
+  the rest of the course.</p>
+  <ol class="steps">
+    <li>A branch for this chapter:
+<pre><code>git switch -c chapter-5</code></pre></li>
+    <li>In <code>index.html</code>, on the <code>data-chapter="05"</code> line, change
+      <code>data-status="todo"</code> to <code>"done"</code>. By hand or by asking the
+      AI; check the diff either way.</li>
+    <li>Commit and push:
+<pre><code>git add index.html; git commit -m "docs: mark chapter 5 done"; git push -u origin chapter-5
+gh pr create --fill</code></pre></li>
+    <li><strong>Look at the preview.</strong> Within a minute a Cloudflare comment
+      appears on the PR with a link like <code>https://chapter-5.&lt;project&gt;.pages.dev</code>.
+      Open it.
+      <p class="expect">6 of 12. This is a <strong>preview</strong>: Cloudflare
+      deployed your branch to its own throwaway address so you can see what
+      <code>main</code> would look like. Nobody's bookmark points at it. The
+      real address, with no branch name in front, still says 5.</p></li>
+    <li>Wait for William's approval. Merge, delete the branch on GitHub, watch
+      the Deployments list, refresh the real address.
+      <p class="expect">6 of 12, on the laptop and on the phone.</p></li>
+    <li>Tidy up:
+<pre><code>git switch main; git pull; git branch -d chapter-5</code></pre></li>
+    <li>One line in <a href="../notes/til.html">Today I learned</a>, at the top.
+      Commit it on your next branch; it does not need its own PR.</li>
+  </ol>
+
+  <h2>Pair with William</h2>
+  <div class="checkpoint">
+    <p>You will: say, in your own words, what happens between clicking
+    <em>Merge</em> and your phone showing the new number. Then: what is the
+    difference between the production address and a preview address, and
+    which one would you give a friend?</p>
+    <p>William will: open the Deployments list, pick the previous deployment,
+    and click <em>Rollback</em>. Refresh the live site: 5 of 12 again, and
+    nothing in git changed. Then he re-deploys the latest. Every deployment
+    is kept; going back is a click, which is why shipping is not scary.</p>
+  </div>
+
+  <h2>Deliberately not in this chapter</h2>
+  <p class="dim small">No custom address: that is chapter 6, and the story above
+  is why it gets its own chapter. No build step: Cloudflare copies your files
+  as they are until chapter 8. No <code>gh pr merge</code> from the terminal,
+  although it exists: the button shows the choices and the command hides them.</p>
+
+  <nav class="pager" aria-label="Chapter navigation"><a href="04-push-and-pr.html">&larr; 4. Push and open a pull request</a><a href="06-your-domain.html">6. A domain of your own &rarr;</a></nav>
+</div>
+</body>
+</html>

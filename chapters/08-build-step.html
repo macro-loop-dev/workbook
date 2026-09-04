@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>8. A build step · The Workbook</title>
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+<div class="page">
+  <nav class="site-nav" aria-label="Site">
+    <a class="brand" href="../index.html">The Workbook</a>
+    <a href="../index.html" aria-current="page">Chapters</a>
+    <a href="../library/index.html">Library</a>
+    <a href="../notes/index.html">Notes</a>
+  </nav>
+
+  <header class="chapter-header">
+    <div class="kicker"><span>Chapter 8</span><span class="badge">mechanic: build + tests</span><span>4-6 hours, in two halves</span></div>
+    <h1>A build step</h1>
+    <p class="lede">Tools that check your work before a human does. From now on
+    a program reads your files before the browser does, and four commands have
+    to agree with you before anything ships.</p>
+  </header>
+
+  <h2>Why this chapter exists</h2>
+  <p>Until now the browser read your files straight off the disk. That was the
+  point of chapter 1, and it is still true underneath. But a real project has
+  more files than a person can hold in their head, and mistakes that a human
+  reviewer will not spot: a misspelled key, a link to a page that was renamed,
+  a function called with the wrong kind of value. This chapter adds four
+  programs that look for exactly those things, and a fifth that runs them on a
+  machine that is not yours every time you push.</p>
+  <p>The words, once, so the rest of the chapter can use them. A <em>build</em>
+  is a program that reads your source files and writes the files the website
+  actually serves, into a folder called <code>dist</code>. <em>npm</em> is the
+  tool that downloads other people's code (<em>packages</em>) and runs your
+  named commands. <em>TypeScript</em> is JavaScript with types: you say what
+  kind of thing each value is, and a checker refuses to build if you break your
+  own promises. A <em>linter</em> reads code for mistakes and style without
+  running it; ours is called <em>Biome</em>. A <em>test</em> is a small program
+  whose only job is to run your code and complain if the answer is wrong.
+  <em>CI</em> you met in chapter 4: the copy of all this that runs on GitHub's
+  computers and cannot be skipped.</p>
+  <p>Every one of these is the exact tool FloatNote uses, chosen so that
+  chapter 11 feels like a place you have been. There is one more reason to do
+  it now: the file-double-click era ends today. From this chapter the site is
+  served by a small program, which is what lets chapter 9 talk to a server.</p>
+
+  <h2>A story</h2>
+  <aside class="story">
+    <p class="when">FloatNote, <code>src/docs.test.ts</code>, 2026-08-24</p>
+    <p>The top of one of FloatNote's test files reads, word for word:</p>
+    <blockquote>
+      <p>Content-rot guard for the /docs chapters, the sibling of tutorial.test.ts.</p>
+      <p>The docs page opens with "every example below runs through the real
+      calculator, live" — so an example that silently stops computing makes
+      the page lie. This nearly shipped once: the crypto examples were added
+      to the money chapter while the docs page fetched only ECB rates, so
+      they rendered blank.</p>
+      <p>The other half is the reverse risk. Chapters are a real FloatNote
+      document, so an UNQUOTED @-tag line in a chapter would fire a live API
+      request in every reader's browser on page load. Tag examples must stay
+      backtick-quoted; this pins that.</p>
+    </blockquote>
+    <p>You met the first half of that story in chapter 1. What is new is the
+    second sentence: the page lied once, so now a program reads every example
+    on every push and refuses to let it lie again. A test is a story about a
+    mistake, written down so precisely that a computer can check it did not
+    come back. Every test you write today is that shape.</p>
+  </aside>
+
+  <h2>What you will do</h2>
+  <ul>
+    <li><strong>8a, tools.</strong> Turn the folder into an npm package. Install
+      Vite, TypeScript, Biome, tsx and marked. Move <code>script.js</code> into
+      <code>src/main.ts</code> with types. Move the chapter list and the Library
+      into small data files that the script draws from. Turn your notes into
+      Markdown that the build renders to pages. See the site on
+      <code>localhost:5173</code> and build it into <code>dist</code>.</li>
+    <li><strong>Mid-checkpoint with William.</strong></li>
+    <li><strong>8b, tests.</strong> Write four small test scripts in the same shape
+      FloatNote uses. Add a <code>checks</code> job to CI so they run on every
+      push. Mark the chapter done by changing one key in a JSON file, with every
+      check green.</li>
+  </ul>
+  <p>Read the whole chapter once before typing anything. It is long because
+  every file you create is printed in full; nothing here is a sketch.</p>
+
+  <h2>Do it</h2>
+  <h3>8a: the tools</h3>
+  <ol class="steps">
+    <li><strong>Branch.</strong> In the Cursor terminal, in <code>~\dev\workbook</code>:
+<pre><code>git switch main; git pull --ff-only; git switch -c chapter-8</code></pre></li>
+    <li><strong>Make it a package.</strong>
+<pre><code>npm init -y</code></pre>
+      <p class="expect">A file called <code>package.json</code> appears. It is
+      the folder's identity card: name, version, the commands you can run, and
+      the packages you depend on. What npm put in it does not matter; you
+      replace the whole file in step 4.</p></li>
+    <li><strong>Install the tools.</strong> One command, five packages plus a
+      helper. The <code>-D</code> means "needed to build, not needed by the
+      website itself". The <code>@6</code>, <code>@5</code> and <code>@22</code>
+      pin the same major versions FloatNote uses.
+<pre><code>npm i -D vite@6 typescript@5 @biomejs/biome tsx marked @types/node@22</code></pre>
+      <p class="expect">A minute of progress, then "added ... packages". Two new
+      things on disk: a <code>node_modules</code> folder (thousands of files;
+      never open it, never commit it; <code>.gitignore</code> already lists it)
+      and <code>package-lock.json</code>, which records the exact version of
+      everything and <em>is</em> committed. On 2026-09-02 that command
+      installed vite 6.4.3, typescript 5.9.3, @biomejs/biome 2.5.11, tsx
+      4.23.13, marked 18.0.11 and @types/node 22.20.1. Check yours with
+      <code>npm ls --depth=0</code>; small differences in the last number are
+      fine.</p>
+      What each one is: <em>vite</em> serves the site while you work and builds
+      <code>dist</code>. <em>typescript</em> is the type checker. <em>@biomejs/biome</em>
+      is the linter and formatter. <em>tsx</em> runs a TypeScript file directly,
+      which is how the tests run. <em>marked</em> turns Markdown into HTML.
+      <em>@types/node</em> tells TypeScript what Node's own functions (reading a
+      folder, say) look like.</li>
+    <li><strong>Replace <code>package.json</code>.</strong> Open it in Cursor,
+      select all, paste this. If your installed versions differ from these,
+      keep <em>yours</em> in the <code>devDependencies</code> block; the rest
+      is exact.
+<pre><code>{
+  "name": "workbook",
+  "private": true,
+  "version": "0.8.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit &amp;&amp; vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "test": "tsx src/progress.test.ts &amp;&amp; tsx src/chapters.test.ts &amp;&amp; tsx src/library.test.ts &amp;&amp; tsx src/notes.test.ts"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.11",
+    "@cloudflare/workers-types": "^5.20260902.1",
+    "@types/node": "^22.20.1",
+    "marked": "^18.0.11",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.3",
+    "wrangler": "^4.128.0"
+  }
+}</code></pre>
+      <p class="expect">The <code>scripts</code> block is the part you will use.
+      <code>npm run typecheck</code> runs the line next to <code>typecheck</code>.
+      <code>npm test</code> and <code>npm run build</code> are the same idea. The
+      <code>&amp;&amp;</code> inside a script means "and then, only if that
+      worked"; it is the one place you will see <code>&amp;&amp;</code> instead
+      of <code>;</code>, because npm runs scripts in its own shell, not yours.</p></li>
+    <li><strong>Create <code>tsconfig.json</code>.</strong> This is TypeScript's
+      settings, copied from FloatNote with one line added
+      (<code>"types": ["node"]</code>) so the tests can read files. Right-click
+      the folder in Cursor &rarr; New File.
+<pre><code>{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "module": "ESNext",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "skipLibCheck": true,
+    "types": ["node"],
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src", "vite.config.ts"]
+}</code></pre>
+      <p class="expect"><code>"strict": true</code> is the whole point. It makes
+      the checker refuse anything it cannot prove; a value that might be missing
+      has to be handled before it is used.</p></li>
+    <li><strong>Create <code>biome.json</code>.</strong> Biome's settings, also
+      FloatNote's, with the file list changed for this repo.
+<pre><code>{
+  "$schema": "https://biomejs.dev/schemas/2.5.11/schema.json",
+  "files": {
+    "includes": ["src/**", "*.ts", "*.json", "!package-lock.json"]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double"
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended"
+    }
+  }
+}</code></pre></li>
+    <li><strong>Create <code>.node-version</code>.</strong> In Cursor, new file
+      named exactly <code>.node-version</code>, containing one line:
+<pre><code>22</code></pre>
+      <p class="expect">Cloudflare and GitHub read this to pick which Node to
+      run your build with. Without it Cloudflare picks an old one and the build
+      fails in a way that has nothing to do with your code.</p></li>
+    <li><strong>Create <code>vite.config.ts</code>.</strong> This tells Vite two
+      things it cannot guess: which pages exist (it bundles nothing it is not
+      told about), and how to turn your Markdown notes into pages. The second
+      part is a small <em>plugin</em>: a function that returns an object with
+      named hooks Vite calls at the right moments. <code>configureServer</code>
+      runs while you work; <code>generateBundle</code> runs during a build.
+<pre><code>import { readdirSync, readFileSync } from "node:fs";
+import { marked } from "marked";
+import { defineConfig, type Plugin } from "vite";
+
+// Vite bundles only the pages it is told about. Every chapter is a page.
+const pages: Record&lt;string, string&gt; = { index: "index.html", library: "library/index.html" };
+for (const f of readdirSync("chapters")) {
+  if (f.endsWith(".html")) pages[f.slice(0, -5)] = `chapters/${f}`;
+}
+
+// ---- notes: Markdown in, pages out --------------------------------------
+// notes/*.md become notes/*.html, on the dev server and in dist. A file whose
+// name starts with _ is a template and is skipped.
+interface Note {
+  name: string;
+  title: string;
+  date: string;
+  body: string;
+}
+
+function readNotes(): Note[] {
+  return readdirSync("notes")
+    .filter((f) =&gt; f.endsWith(".md") &amp;&amp; !f.startsWith("_"))
+    .map((f) =&gt; {
+      const name = f.slice(0, -3);
+      const raw = readFileSync(`notes/${f}`, "utf8");
+      const m = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(raw);
+      const head: Record&lt;string, string&gt; = {};
+      for (const line of (m?.[1] ?? "").split(/\r?\n/)) {
+        const i = line.indexOf(":");
+        if (i &gt; 0) head[line.slice(0, i).trim()] = line.slice(i + 1).trim();
+      }
+      return { name, title: head.title ?? name, date: head.date ?? "", body: m?.[2] ?? raw };
+    })
+    .sort((a, b) =&gt; b.date.localeCompare(a.date) || a.name.localeCompare(b.name));
+}
+
+const esc = (s: string) =&gt; s.replace(/&amp;/g, "&amp;amp;").replace(/&lt;/g, "&amp;lt;").replace(/&gt;/g, "&amp;gt;");
+
+function page(title: string, main: string): string {
+  return `&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+&lt;meta charset="utf-8"&gt;
+&lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;
+&lt;title&gt;${esc(title)} · Notes&lt;/title&gt;
+&lt;link rel="stylesheet" href="../styles.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div class="page"&gt;
+  &lt;nav class="site-nav" aria-label="Site"&gt;
+    &lt;a class="brand" href="../index.html"&gt;The Workbook&lt;/a&gt;
+    &lt;a href="../index.html"&gt;Chapters&lt;/a&gt;
+    &lt;a href="../library/index.html"&gt;Library&lt;/a&gt;
+    &lt;a href="index.html" aria-current="page"&gt;Notes&lt;/a&gt;
+  &lt;/nav&gt;
+${main}
+  &lt;nav class="pager"&gt;&lt;a href="index.html"&gt;&amp;larr; all notes&lt;/a&gt;&lt;/nav&gt;
+&lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+`;
+}
+
+function renderNote(n: Note): string {
+  const header = `  &lt;header class="chapter-header"&gt;&lt;div class="kicker"&gt;&lt;span&gt;${esc(n.date)}&lt;/span&gt;&lt;/div&gt;&lt;h1&gt;${esc(n.title)}&lt;/h1&gt;&lt;/header&gt;\n`;
+  return page(n.title, header + marked.parse(n.body, { async: false }));
+}
+
+function renderIndex(notes: Note[]): string {
+  const items = notes
+    .map(
+      (n) =&gt;
+        `    &lt;li&gt;&lt;span class="date"&gt;${esc(n.date)}&lt;/span&gt;&lt;a href="${n.name}.html"&gt;${esc(n.title)}&lt;/a&gt;&lt;/li&gt;`,
+    )
+    .join("\n");
+  return page(
+    "Notes",
+    `  &lt;h1&gt;Notes&lt;/h1&gt;\n  &lt;p class="lede"&gt;Yours. Nobody edits these but you.&lt;/p&gt;\n  &lt;ul class="notes-list"&gt;\n${items}\n  &lt;/ul&gt;\n`,
+  );
+}
+
+function notesPlugin(): Plugin {
+  const html = (name: string): string | null =&gt; {
+    const notes = readNotes();
+    if (name === "index") return renderIndex(notes);
+    const n = notes.find((x) =&gt; x.name === name);
+    return n ? renderNote(n) : null;
+  };
+  return {
+    name: "workbook-notes",
+    configureServer(server) {
+      server.middlewares.use((req, res, next) =&gt; {
+        const m = /^\/notes\/(?:([^/?]+)\.html)?(?:\?.*)?$/.exec(req.url ?? "");
+        const out = m ? html(m[1] ?? "index") : null;
+        if (out === null) return next();
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        res.end(out);
+      });
+    },
+    generateBundle() {
+      for (const name of ["index", ...readNotes().map((n) =&gt; n.name)]) {
+        this.emitFile({ type: "asset", fileName: `notes/${name}.html`, source: html(name) ?? "" });
+      }
+      // The notes pages link ../styles.css by name; Vite copies nothing it is
+      // not told about, so tell it.
+      this.emitFile({
+        type: "asset",
+        fileName: "styles.css",
+        source: readFileSync("styles.css", "utf8"),
+      });
+    },
+  };
+}
+
+export default defineConfig({
+  appType: "mpa",
+  plugins: [notesPlugin()],
+  build: { rollupOptions: { input: pages } },
+});</code></pre>
+      <p class="expect">It is the longest file in the chapter. Read
+      <code>readNotes</code> slowly: it reads the folder, splits each file into
+      the <em>front matter</em> (the block between the two <code>---</code>
+      lines, holding a title and a date) and the body, and sorts by date. The
+      rest is a page template around what <code>marked</code> produces.</p></li>
+    <li><strong>Create <code>src/progress.ts</code> and <code>src/progress.json</code>.</strong>
+      Make a folder <code>src</code>. The <code>.ts</code> file is the vocabulary:
+      what a chapter id is, what a status is, how to count. The
+      <code>.json</code> file is the data: which chapters are done. Chapter 7's
+      attribute in <code>index.html</code> moves here.
+<pre><code>// The vocabulary of progress. No DOM, no JSON, no fetch: pure functions that
+// the page, the tests and (from chapter 9) the server all share.
+
+export const CHAPTER_IDS = [
+  "00",
+  "01",
+  "02",
+  "03",
+  "04",
+  "05",
+  "06",
+  "07",
+  "08",
+  "09",
+  "10",
+  "11",
+] as const;
+
+export type ChapterId = (typeof CHAPTER_IDS)[number];
+export type Status = "todo" | "done";
+
+export function isStatus(x: unknown): x is Status {
+  return x === "todo" || x === "done";
+}
+
+export function isChapterId(x: unknown): x is ChapterId {
+  return typeof x === "string" &amp;&amp; (CHAPTER_IDS as readonly string[]).includes(x);
+}
+
+export function countDone(chapters: Record&lt;string, Status&gt;): number {
+  return Object.values(chapters).filter((s) =&gt; s === "done").length;
+}</code></pre>
+<pre><code>{
+  "version": 1,
+  "chapters": {
+    "00": "done",
+    "01": "done",
+    "02": "done",
+    "03": "done",
+    "04": "done",
+    "05": "done",
+    "06": "done",
+    "07": "done",
+    "08": "todo",
+    "09": "todo",
+    "10": "todo",
+    "11": "todo"
+  }
+}</code></pre>
+      <p class="expect">Notice <code>progress.ts</code> does not read
+      <code>progress.json</code>. It knows nothing about where the data lives.
+      That is on purpose: in chapter 9 the data moves to a server, and this
+      file will not change by one character.</p></li>
+    <li><strong>Create <code>src/chapters.ts</code>.</strong> The manifest: one
+      entry per chapter page. The list on the home page is drawn from this
+      from now on.
+<pre><code>// The manifest: one entry per chapter page. The list on index.html is drawn
+// from this, and chapters.test.ts checks it against the files on disk.
+
+export interface Chapter {
+  number: number;
+  slug: string;
+  title: string;
+  mechanic: string;
+  time: string;
+}
+
+export const CHAPTERS: readonly Chapter[] = [
+  { number: 0, slug: "00-setup", title: "Set up the machine", mechanic: "watch", time: "2-3 h" },
+  {
+    number: 1,
+    slug: "01-edit-and-refresh",
+    title: "Edit the file, refresh the browser",
+    mechanic: "edit + refresh",
+    time: "1 h",
+  },
+  {
+    number: 2,
+    slug: "02-ask-the-ai",
+    title: "Ask the AI, review the diff",
+    mechanic: "ask the AI",
+    time: "1-2 h",
+  },
+  {
+    number: 3,
+    slug: "03-commit",
+    title: "Commit in the terminal",
+    mechanic: "commit",
+    time: "2 h",
+  },
+  {
+    number: 4,
+    slug: "04-push-and-pr",
+    title: "Push and open a pull request",
+    mechanic: "push + PR",
+    time: "2 h",
+  },
+  {
+    number: 5,
+    slug: "05-merge-and-ship",
+    title: "Merge and ship",
+    mechanic: "merge = deploy",
+    time: "1 h",
+  },
+  {
+    number: 6,
+    slug: "06-your-domain",
+    title: "A domain of your own",
+    mechanic: "your domain",
+    time: "1-2 h",
+  },
+  {
+    number: 7,
+    slug: "07-javascript",
+    title: "JavaScript makes it interactive",
+    mechanic: "JavaScript",
+    time: "3-4 h",
+  },
+  {
+    number: 8,
+    slug: "08-build-step",
+    title: "A build step",
+    mechanic: "build + tests",
+    time: "4-6 h",
+  },
+  {
+    number: 9,
+    slug: "09-server-side",
+    title: "Save progress on the server",
+    mechanic: "server + database",
+    time: "6-8 h",
+  },
+  {
+    number: 10,
+    slug: "10-portfolio",
+    title: "Restructure into a portfolio",
+    mechanic: "portfolio",
+    time: "4-6 h",
+  },
+  {
+    number: 11,
+    slug: "11-floatnote-pr",
+    title: "A real pull request to FloatNote",
+    mechanic: "FloatNote PR",
+    time: "4-8 h",
+  },
+];
+
+/** "08" for chapter 8: the key used in progress.json and on data-chapter. */
+export function chapterId(c: Chapter): string {
+  return String(c.number).padStart(2, "0");
+}</code></pre></li>
+    <li><strong>Create <code>src/library.ts</code> and <code>src/library.json</code>.</strong>
+      The Library's four categories, and the items, one object per
+      <code>&lt;li&gt;</code> that is in <code>library/index.html</code> today.
+      The items below are the eleven that were there on 2026-09-02; if William
+      has added more since, add each as one more object in the same shape
+      (<code>id</code> is the title in lowercase with dashes) and copy the
+      <code>data-seen</code> value into <code>seen</code> as <code>true</code>
+      or <code>false</code>.
+<pre><code>// The vocabulary of the Library. The items themselves live in library.json.
+
+export const CATEGORIES = ["sites-apps", "tools", "prompting", "reading"] as const;
+
+export type Category = (typeof CATEGORIES)[number];
+
+export interface LibraryItem {
+  id: string;
+  category: Category;
+  title: string;
+  url: string;
+  why: string;
+  added: string;
+  seen: boolean;
+}
+
+export function isCategory(x: unknown): x is Category {
+  return typeof x === "string" &amp;&amp; (CATEGORIES as readonly string[]).includes(x);
+}</code></pre>
+<pre><code>{
+  "version": 1,
+  "items": [
+    {
+      "id": "floatnote",
+      "category": "sites-apps",
+      "title": "FloatNote",
+      "url": "https://app.floatnote.dev",
+      "why": "The app you will send a pull request to in chapter 11. Type some maths in it and watch the answer column.",
+      "added": "2026-09-02",
+      "seen": false
+    },
+    {
+      "id": "ciechanowski",
+      "category": "sites-apps",
+      "title": "Bartosz Ciechanowski's explainers",
+      "url": "https://ciechanow.ski/",
+      "why": "Interactive explanations of how things work (GPS, cameras, bicycles). Every one is hand-built web code with no framework, which is the kind you are learning.",
+      "added": "2026-09-02",
+      "seen": false
+    },
+    {
+      "id": "neal-fun",
+      "category": "sites-apps",
+      "title": "neal.fun",
+      "url": "https://neal.fun/",
+      "why": "Small, playful web toys. Proof that a website can be one idea done well.",
+      "added": "2026-09-02",
+      "seen": false
+    },
+    {
+      "id": "cursor-docs",
+      "category": "tools",
+      "title": "Cursor docs",
+      "url": "https://docs.cursor.com/",
+      "why": "The editor you are using. Read the pages on Tab, Chat and Rules; the rest can wait.",
+      "added": "2026-09-02",
+      "seen": false
+    },
+    {
+      "id": "github-cli",
+      "category": "tools",
+      "title": "GitHub CLI",
+      "url": "https://cli.github.com/",
+      "why": "The gh command. From chapter 4 you open pull requests with it instead of clicking.",
+      "added": "2026-09-02",
+      "seen": false
+    },
+    {
+      "id": "excalidraw",
+      "category": "tools",
+      "title": "Excalidraw",
+      "url": "https://excalidraw.com/",
+      "why": "Draw a diagram before you build a thing. Free, no account, works in the browser.",
+      "added": "2026-09-02",
+      "seen": false
+    },
+    {
+      "id": "willison-llms-for-code",
+      "category": "prompting",
+      "title": "Simon Willison: how I use LLMs to help me write code",
+      "url": "https://simonwillison.net/2025/Mar/11/using-llms-for-code/",
+      "why": "The honest version. Set expectations, give context, test what it gives you. Chapter 2 in someone else's words.",
+      "added": "2026-09-02",
+      "seen": false
+    },
+    {
+      "id": "anthropic-prompt-engineering",
+      "category": "prompting",
+      "title": "Anthropic: prompt engineering overview",
+      "url": "https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview",
+      "why": "Be clear, give examples, let it think. Written for people building with the API, but the first two pages apply to any chat box.",
+      "added": "2026-09-02",
+      "seen": false
+    },
+    {
+      "id": "mdn-learn",
+      "category": "reading",
+      "title": "MDN: Learn web development",
+      "url": "https://developer.mozilla.org/en-US/docs/Learn_web_development",
+      "why": "The reference for HTML, CSS and JavaScript. When the AI tells you what a tag does, this is where you check.",
+      "added": "2026-09-02",
+      "seen": false
+    },
+    {
+      "id": "missing-semester",
+      "category": "reading",
+      "title": "The Missing Semester of Your CS Education",
+      "url": "https://missing.csail.mit.edu/",
+      "why": "A course on the terminal, git and the tools around code. Chapter 3 and 4 material, taught by MIT for free.",
+      "added": "2026-09-02",
+      "seen": false
+    },
+    {
+      "id": "wizard-zines",
+      "category": "reading",
+      "title": "Julia Evans' zines",
+      "url": "https://wizardzines.com/",
+      "why": "Comics that explain git, the terminal and networking. Read the free ones first.",
+      "added": "2026-09-02",
+      "seen": false
+    }
+  ]
+}</code></pre></li>
+    <li><strong>Create <code>src/main.ts</code>, delete <code>script.js</code>.</strong>
+      This is chapter 7's script, typed, drawing the list from the files above
+      instead of finding it on the page. The two localStorage keys are the same
+      ones, so the ticks you made in chapter 7 survive.
+<pre><code>// The page's only script. Draws the chapter list and the Library from the
+// files in src/, then layers on what this browser remembers (chapter 7).
+import { CHAPTERS, chapterId } from "./chapters";
+import { isCategory } from "./library";
+import libraryData from "./library.json";
+import { countDone, isStatus, type Status } from "./progress";
+import progressData from "./progress.json";
+
+// Same two keys as chapter 7. The prefix matters: every page you ever open
+// on this computer's localhost shares one localStorage.
+const PROGRESS_KEY = "workbook.progress.v1";
+const SEEN_KEY = "workbook.seen.v1";
+
+function readOverlay(key: string): Record&lt;string, string&gt; {
+  try {
+    const parsed: unknown = JSON.parse(localStorage.getItem(key) ?? "{}");
+    if (parsed &amp;&amp; typeof parsed === "object" &amp;&amp; !Array.isArray(parsed)) {
+      return parsed as Record&lt;string, string&gt;;
+    }
+  } catch {
+    // not JSON: it is a cache, not the truth, so start again
+  }
+  return {};
+}
+
+function writeOverlay(key: string, value: Record&lt;string, string&gt;): void {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
+function make&lt;K extends keyof HTMLElementTagNameMap&gt;(
+  tag: K,
+  className = "",
+  text = "",
+): HTMLElementTagNameMap[K] {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text) node.textContent = text;
+  return node;
+}
+
+function renderChapters(list: HTMLOListElement): void {
+  const committed: Record&lt;string, string&gt; = progressData.chapters;
+  const overlay = readOverlay(PROGRESS_KEY);
+  const status: Record&lt;string, Status&gt; = {};
+  for (const c of CHAPTERS) {
+    const id = chapterId(c);
+    const s = overlay[id] ?? committed[id];
+    status[id] = isStatus(s) ? s : "todo";
+  }
+
+  const bar = make("div", "bar");
+  const fill = make("div", "bar-fill");
+  bar.append(fill);
+  const paint = () =&gt; {
+    fill.style.width = `${Math.round((100 * countDone(status)) / CHAPTERS.length)}%`;
+  };
+
+  for (const c of CHAPTERS) {
+    const id = chapterId(c);
+    const li = make("li");
+    li.dataset.chapter = id;
+    li.dataset.status = status[id];
+    const box = make("input");
+    box.type = "checkbox";
+    box.checked = status[id] === "done";
+    box.addEventListener("change", () =&gt; {
+      status[id] = box.checked ? "done" : "todo";
+      li.dataset.status = status[id];
+      overlay[id] = status[id];
+      writeOverlay(PROGRESS_KEY, overlay);
+      paint();
+    });
+    const link = make("a", "", c.title);
+    link.href = `chapters/${c.slug}.html`;
+    const meta = make("span", "meta");
+    meta.append(make("span", "badge", c.mechanic), make("span", "", c.time));
+    li.append(make("span", "num", String(c.number)), box, link, meta);
+    list.append(li);
+  }
+  list.after(bar);
+  paint();
+}
+
+function renderLibrary(): void {
+  const overlay = readOverlay(SEEN_KEY);
+  for (const item of libraryData.items) {
+    if (!isCategory(item.category)) continue;
+    const list = document.querySelector&lt;HTMLUListElement&gt;(`ul[data-category="${item.category}"]`);
+    if (!list) continue;
+    const li = make("li");
+    li.dataset.added = item.added;
+    li.dataset.seen = item.seen || overlay[item.id] === "yes" ? "yes" : "no";
+    const box = make("input");
+    box.type = "checkbox";
+    box.title = "seen";
+    box.checked = li.dataset.seen === "yes";
+    box.addEventListener("change", () =&gt; {
+      li.dataset.seen = box.checked ? "yes" : "no";
+      overlay[item.id] = li.dataset.seen;
+      writeOverlay(SEEN_KEY, overlay);
+    });
+    const link = make("a", "", item.title);
+    link.href = item.url;
+    li.append(box, " ", link, " ", make("span", "why", item.why));
+    list.append(li);
+  }
+}
+
+const chapterList = document.querySelector&lt;HTMLOListElement&gt;("ol#chapters");
+if (chapterList) renderChapters(chapterList);
+if (document.querySelector("ul[data-category]")) renderLibrary();</code></pre>
+      Then remove the old script: <code>git rm script.js</code>.
+      <p class="expect">Two things to see. First, <code>: string</code>,
+      <code>: Status</code> and friends after names: those are the types.
+      Second, <code>li.dataset.status = ...</code> still sets the attribute, so
+      the CSS counter from chapter 1 keeps working without knowing anything
+      changed. The list moved from HTML to data, and the CSS never found
+      out.</p></li>
+    <li><strong>Edit <code>index.html</code>.</strong> Three changes. Delete
+      every <code>&lt;li data-chapter=...&gt;</code> line and the
+      <code>&lt;ol&gt;</code> around them, and put this in their place:
+<pre><code>&lt;ol class="chapters progress" id="chapters"&gt;&lt;/ol&gt;</code></pre>
+      Delete the chapter-7 line <code>&lt;script src="script.js"&gt;&lt;/script&gt;</code>.
+      Then, just before <code>&lt;/body&gt;</code>, add:
+<pre><code>&lt;script type="module" src="/src/main.ts"&gt;&lt;/script&gt;</code></pre>
+      <p class="expect"><code>type="module"</code> is the thing chapter 7 said
+      would not work. It did not work from <code>file://</code>. From a server
+      it does, and step 15 starts one. The comment above the list can say the
+      list is drawn by <code>src/main.ts</code> now; rewrite it in your own
+      words.</p></li>
+    <li><strong>Edit <code>library/index.html</code>.</strong> Empty each of the
+      four lists so they read, for example,
+      <code>&lt;ul data-category="sites-apps"&gt;&lt;/ul&gt;</code>, keeping the
+      <code>data-category</code> attribute: <code>main.ts</code> finds the lists
+      by it. Add the same <code>&lt;script type="module" src="/src/main.ts"&gt;&lt;/script&gt;</code>
+      line before <code>&lt;/body&gt;</code>. If chapter 7 added a
+      <code>&lt;script src="script.js"&gt;</code> line here, delete it.</li>
+    <li><strong>Notes become Markdown.</strong> Every <code>.html</code> file in
+      <code>notes/</code> becomes a <code>.md</code> file with the same name,
+      and the build makes the pages. Markdown is plain text with a little
+      punctuation: <code>#</code> for a heading, <code>-</code> for a list,
+      backticks for code, and a table drawn with <code>|</code>. Start with the
+      template:
+<pre><code>---
+title: TITLE
+date: YYYY-MM-DD
+---
+&lt;!-- To use: copy this file to YYYY-MM-DD-short-title.md in this folder,
+     fill in the two lines above, write under the headings, delete the ones
+     you do not need. The index page lists it on the next build. --&gt;
+
+## What I learned
+
+## What confused me
+
+## What I would tell someone starting this</code></pre>
+      Then the git cheat sheet, which shows how a table looks. Copy your own
+      rows across, one <code>|</code> line per <code>&lt;tr&gt;</code>:
+<pre><code>---
+title: git cheat sheet
+date: 2026-09-02
+---
+Commands I actually use, in my own words.
+
+| Command | What it does | When I use it |
+| --- | --- | --- |
+| `git status` | Lists what changed since the last commit | Before every commit, and whenever I am confused |</code></pre>
+      Do the same for <code>powershell.md</code>, <code>cursor.md</code> and
+      <code>glossary.md</code> (their first line after the front matter is the
+      old <code>lede</code>), and for each note page you made from the
+      template. <code>til.md</code> is a list, newest first, one line per
+      entry:
+<pre><code>---
+title: Today I learned
+date: 2026-09-02
+---
+One line per chapter, at least. Newest at the top.
+
+- **2026-09-02, example (delete me).** A file on my laptop can be a whole
+  website. There is nothing in between.</code></pre>
+      Finally delete the old pages, including <code>notes/index.html</code>:
+      the build writes the index from the front matter now.
+<pre><code>git rm notes/*.html</code></pre>
+      <p class="expect"><code>Get-ChildItem notes</code> lists only
+      <code>.md</code> files. The date in each front matter is when you wrote
+      it; the index sorts by it.</p></li>
+    <li><strong>Run the site.</strong>
+<pre><code>npm run dev</code></pre>
+      Open <a href="http://localhost:5173">http://localhost:5173</a>.
+      <p class="expect">The chapter list, with ticks where chapter 7 left them.
+      Click through to a chapter, to the Library, to Notes, to a cheat sheet.
+      Edit <code>notes/git.md</code>, save, refresh: the page changed. Edit the
+      title in <code>src/chapters.ts</code>, save: the list changed without a
+      refresh. That is Vite. When you are done, <kbd>Ctrl</kbd>+<kbd>C</kbd> in
+      the terminal stops it. The address bar says <code>localhost</code>, not
+      <code>file://</code>; double-clicking <code>index.html</code> now shows an
+      empty list, forever. Say goodbye to it.</p></li>
+    <li><strong>Build it, commit it.</strong>
+<pre><code>npm run build; Get-ChildItem dist -Recurse -File -Name</code></pre>
+      <p class="expect"><code>tsc</code> says nothing (good), Vite prints a line
+      per file, and the listing shows <code>index.html</code>, twelve pages in
+      <code>chapters</code>, <code>library/index.html</code>, every note under
+      <code>notes</code>, <code>styles.css</code>, and an <code>assets</code>
+      folder with one <code>.js</code> and one <code>.css</code>. If a chapter
+      is missing, see the gotchas. Then <code>npm run preview</code> serves that
+      folder on <code>localhost:4173</code>, which is exactly what Cloudflare
+      will serve.</p>
+<pre><code>git add -A; git status</code></pre>
+      <p class="expect">Green: <code>package.json</code>,
+      <code>package-lock.json</code>, the new files under <code>src</code>, the
+      <code>.md</code> notes, deleted <code>.html</code> notes and
+      <code>script.js</code>. Not there: <code>node_modules</code>,
+      <code>dist</code>. If either is listed, stop and ask why.</p>
+<pre><code>git commit -m "feat: build step with vite, typescript and biome"</code></pre>
+      This is the mid-checkpoint. Show William before going on.</li>
+  </ol>
+
+  <h3>8b: the tests</h3>
+  <ol class="steps">
+    <li><strong>Create <code>src/progress.test.ts</code>.</strong> The shape is
+      FloatNote's: two counters, a small <code>eq</code> helper that compares
+      what you got with what you wanted, a list of checks, and at the end an
+      exit code of 1 if anything failed. That exit code is what CI reads.
+<pre><code>// progress.json is data, and data rots: a typo in a status would silently
+// stop counting. This pins the shape.
+
+import { CHAPTER_IDS, countDone, isChapterId, isStatus } from "./progress";
+import data from "./progress.json";
+
+let pass = 0;
+let fail = 0;
+function eq(name: string, actual: unknown, expected: unknown) {
+  if (JSON.stringify(actual) === JSON.stringify(expected)) {
+    pass++;
+  } else {
+    fail++;
+    console.log(`FAIL: ${name}: got ${JSON.stringify(actual)}, want ${JSON.stringify(expected)}`);
+  }
+}
+
+eq("version is 1", data.version, 1);
+eq("one entry per chapter, no extras", Object.keys(data.chapters).sort(), [...CHAPTER_IDS]);
+for (const [id, status] of Object.entries(data.chapters)) {
+  eq(`chapter ${id} has a real status`, isStatus(status), true);
+}
+
+eq("isStatus accepts done", isStatus("done"), true);
+eq("isStatus rejects finished", isStatus("finished"), false);
+eq("isChapterId accepts 08", isChapterId("08"), true);
+eq("isChapterId rejects 8", isChapterId("8"), false);
+eq("isChapterId rejects 12", isChapterId("12"), false);
+eq("countDone counts only done", countDone({ "00": "done", "01": "todo", "02": "done" }), 2);
+
+console.log(`${pass} passed, ${fail} failed`);
+if (fail &gt; 0) process.exit(1);</code></pre>
+      Run just this one:
+<pre><code>npx tsx src/progress.test.ts</code></pre>
+      <p class="expect"><code>20 passed, 0 failed</code>. Now open
+      <code>src/progress.json</code>, change <code>"08": "todo"</code> to
+      <code>"08": "soon"</code>, run it again. One <code>FAIL:</code> line names
+      the chapter. Put it back. You just watched a test catch a typo.</p></li>
+    <li><strong>Create <code>src/chapters.test.ts</code>.</strong> This one reads
+      the <code>chapters</code> folder from disk and compares it with the
+      manifest, then reads the prev/next links at the bottom of every chapter
+      and checks each one points at a file that exists.
+<pre><code>// The manifest and the folder must agree, and every prev/next link at the
+// bottom of a chapter must go somewhere. A dead pager link is the kind of
+// thing nobody notices until a reader does.
+
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { CHAPTERS, chapterId } from "./chapters";
+
+let pass = 0;
+let fail = 0;
+function ok(name: string, condition: boolean) {
+  if (condition) {
+    pass++;
+  } else {
+    fail++;
+    console.log(`FAIL: ${name}`);
+  }
+}
+
+const dir = join(import.meta.dirname, "..", "chapters");
+const files = readdirSync(dir)
+  .filter((f) =&gt; f.endsWith(".html"))
+  .sort();
+const slugs = CHAPTERS.map((c) =&gt; c.slug);
+
+ok("twelve chapters in the manifest", CHAPTERS.length === 12);
+for (const f of files) {
+  ok(`${f} is in the manifest`, slugs.includes(f.slice(0, -5)));
+}
+for (const c of CHAPTERS) {
+  ok(`${c.slug}.html exists`, files.includes(`${c.slug}.html`));
+  ok(`${c.slug} id matches its number`, chapterId(c) === c.slug.slice(0, 2));
+}
+
+for (const f of files) {
+  const html = readFileSync(join(dir, f), "utf8");
+  const pager = /&lt;nav class="pager"[^&gt;]*&gt;([\s\S]*?)&lt;\/nav&gt;/.exec(html);
+  ok(`${f} has a pager`, pager !== null);
+  for (const m of (pager?.[1] ?? "").matchAll(/href="([^"]+)"/g)) {
+    ok(`${f} links to ${m[1]}`, existsSync(join(dir, m[1])));
+  }
+}
+
+console.log(`${pass} passed, ${fail} failed`);
+if (fail &gt; 0) process.exit(1);</code></pre>
+      <p class="expect"><code>npx tsx src/chapters.test.ts</code> ends
+      <code>73 passed, 0 failed</code>. The count is 73 because twelve files
+      each have a few checks; it will be different if a chapter was
+      added.</p></li>
+    <li><strong>Create <code>src/library.test.ts</code>.</strong> The part of a
+      Library pull-request review that a machine can do: the category is one
+      of the four, the link is https, the date is a date, the id is unique.
+<pre><code>// library.json arrives by pull request, one item at a time. This is the part
+// of the review a machine can do.
+
+import { isCategory } from "./library";
+import data from "./library.json";
+
+let pass = 0;
+let fail = 0;
+function ok(name: string, condition: boolean) {
+  if (condition) {
+    pass++;
+  } else {
+    fail++;
+    console.log(`FAIL: ${name}`);
+  }
+}
+
+ok("version is 1", data.version === 1);
+ok("at least one item", data.items.length &gt; 0);
+
+const ids = new Set&lt;string&gt;();
+for (const item of data.items) {
+  const label = `item ${JSON.stringify(item.id)}`;
+  ok(`${label} has an id`, typeof item.id === "string" &amp;&amp; item.id.length &gt; 0);
+  ok(`${label} id is unique`, !ids.has(item.id));
+  ids.add(item.id);
+  ok(`${label} has a known category`, isCategory(item.category));
+  ok(`${label} has a title`, item.title.trim().length &gt; 0);
+  ok(`${label} url is https`, item.url.startsWith("https://"));
+  ok(`${label} has a why`, item.why.trim().length &gt; 0);
+  ok(`${label} added is a date`, /^\d{4}-\d{2}-\d{2}$/.test(item.added));
+  ok(`${label} seen is true or false`, typeof item.seen === "boolean");
+}
+
+console.log(`${pass} passed, ${fail} failed`);
+if (fail &gt; 0) process.exit(1);</code></pre></li>
+    <li><strong>Create <code>src/notes.test.ts</code>.</strong> Every note has
+      front matter with a title and a date, and no old <code>.html</code> is
+      left behind to shadow a built page.
+<pre><code>// Every note is Markdown with a title and a date at the top. The build turns
+// them into pages; a note without front matter would get a blank title and
+// sort to the bottom without anyone being told.
+
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+
+let pass = 0;
+let fail = 0;
+function ok(name: string, condition: boolean) {
+  if (condition) {
+    pass++;
+  } else {
+    fail++;
+    console.log(`FAIL: ${name}`);
+  }
+}
+
+const dir = join(import.meta.dirname, "..", "notes");
+const files = readdirSync(dir);
+
+ok("no .html left in notes/ (the build makes those)", !files.some((f) =&gt; f.endsWith(".html")));
+
+for (const f of files.filter((x) =&gt; x.endsWith(".md") &amp;&amp; !x.startsWith("_"))) {
+  const raw = readFileSync(join(dir, f), "utf8");
+  const m = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/.exec(raw);
+  ok(`${f} starts with front matter`, m !== null);
+  const head = m?.[1] ?? "";
+  ok(`${f} has a title`, /^title: \S/m.test(head));
+  ok(`${f} has a date like 2026-09-02`, /^date: \d{4}-\d{2}-\d{2}$/m.test(head));
+}
+
+console.log(`${pass} passed, ${fail} failed`);
+if (fail &gt; 0) process.exit(1);</code></pre></li>
+    <li><strong>Run everything.</strong>
+<pre><code>npm test</code></pre>
+      <p class="expect">Four "passed, 0 failed" lines. If a middle one fails the
+      later ones do not run; that is the <code>&amp;&amp;</code> in the
+      script.</p></li>
+    <li><strong>Type check and lint.</strong>
+<pre><code>npm run typecheck; npm run lint</code></pre>
+      <p class="expect"><code>tsc</code> prints nothing. Biome prints
+      "Checked 14 files". If Biome instead lists formatting differences, run
+      <code>npm run lint:fix</code>, then <code>git diff</code> to see what it
+      changed: usually line breaks and quote marks. It reformats; it does not
+      change what the code does. Read the diff anyway.</p></li>
+    <li><strong>Add the <code>checks</code> job to CI.</strong> Open
+      <code>.github/workflows/gates.yml</code>. Under <code>jobs:</code> there
+      is one job, <code>secrets</code>. Add a second one after it, at the same
+      indentation (two spaces in from the margin):
+<pre><code>  checks:
+    # The slow gates. Same five commands you run before every commit, on a
+    # machine that has never seen your laptop.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build</code></pre>
+      <p class="expect">Indentation is meaning in this file: <code>checks:</code>
+      must line up exactly under <code>secrets:</code>. <code>npm ci</code> is
+      <code>npm install</code> for machines: it installs exactly what
+      <code>package-lock.json</code> says and refuses if the lock and
+      <code>package.json</code> disagree. That is why the lock is
+      committed.</p></li>
+    <li><strong>Commit and push.</strong>
+<pre><code>git add -A; git commit -m "feat: tests and a checks job in CI"; git push -u origin chapter-8</code></pre>
+      Then open the pull request the way you did in chapter 4:
+      <code>gh pr create --fill</code>.
+      <p class="expect">On the PR page, two checks instead of one:
+      <code>secrets</code> and <code>checks</code>. The second takes a minute or
+      two. Click into it and read the log: the five commands, in order, on a
+      Linux machine you have never seen. Green means every one of them agreed
+      with your laptop.</p></li>
+  </ol>
+
+  <h2>Check</h2>
+  <p>In <code>~\dev\workbook</code>, on the <code>chapter-8</code> branch, all
+  four of these finish without a red line:</p>
+<pre><code>npm run typecheck; npm run lint; npm test; npm run build</code></pre>
+  <p>Then <code>Get-ChildItem dist -Recurse -File -Name</code> lists
+  <code>index.html</code>, twelve files under <code>chapters</code>,
+  <code>library\index.html</code>, <code>notes\index.html</code> plus one file
+  per note, and <code>styles.css</code>. On the pull request, both checks are
+  green. <code>git status</code> is clean, and <code>node_modules</code> is
+  not in it.</p>
+
+  <h2>What can go wrong</h2>
+  <ul class="gotchas">
+    <li><b>"npm.ps1 cannot be loaded because running scripts is disabled".</b>
+      You are in the blue Windows PowerShell, or chapter 0's execution-policy
+      step was skipped. Check the terminal icon; check
+      <code>$PSVersionTable.PSVersion</code> starts with 7.</li>
+    <li><b>CI fails at <code>npm ci</code> with "package-lock.json not found"
+      or "lock file out of sync".</b> The lock was not committed, or you edited
+      <code>package.json</code> by hand after installing. Run
+      <code>npm install</code> once (it fixes the lock), commit the lock, push.</li>
+    <li><b>Biome lists errors, not just formatting.</b> Each one names a rule.
+      Read the rule name and the sentence under it; most are one-line fixes
+      ("do not shadow the global <code>escape</code>" means: pick another
+      name). <code>lint:fix</code> only fixes the safe ones.</li>
+    <li><b>A chapter page is missing from <code>dist</code>.</b> Vite bundled
+      only what <code>pages</code> in <code>vite.config.ts</code> named. That
+      object is built by reading the <code>chapters</code> folder, so the
+      usual cause is a file that does not end in <code>.html</code>, or a
+      chapter saved somewhere else. Adding an entry by hand is the wrong fix;
+      find why the loop missed it.</li>
+    <li><b>Cloudflare's build fails with a Node error, or "vite: not found",
+      before your code runs.</b> It used Node 18. <code>.node-version</code>
+      fixes it; William also sets <code>NODE_VERSION=22</code> in the
+      dashboard at the checkpoint, and switches the build command to
+      <code>npm run build</code> and the output folder to <code>dist</code>.
+      Until he does, a merge would deploy the old static site.</li>
+    <li><b><code>tsx</code> says it cannot find <code>./progress.json</code>, or
+      TypeScript complains about importing JSON.</b>
+      <code>resolveJsonModule</code> is missing from <code>tsconfig.json</code>.
+      It is in the file above; check for a typo.</li>
+    <li><b><code>import.meta.dirname</code> is undefined.</b> Node is older than
+      20.11. <code>node --version</code> should say 22; if not, chapter 0's
+      installer picked something else, and William can help.</li>
+    <li><b>Notes look unstyled on the built site but fine in dev.</b> The
+      generated note pages link <code>../styles.css</code> by name, and Vite
+      copies nothing it is not told about. The plugin's last
+      <code>emitFile</code> line copies it; if you trimmed that line, put it
+      back. Chapter pages never had the problem because they are entries, and
+      Vite rewrote their stylesheet link itself.</li>
+    <li><b>The AI suggests Jest, Vitest, ESLint or Prettier.</b> Say no. They
+      are fine tools; they are not the ones FloatNote uses, and learning two
+      of everything is the wrong trade at this point. The AI also has to ask
+      before any install (rule 5 in <code>AGENTS.md</code>); if it did not
+      ask, that is the diff to reject.</li>
+    <li><b>Port 5173 is already in use.</b> A dev server from another terminal
+      is still running. Vite picks 5174 and prints it; read the terminal
+      rather than the chapter.</li>
+    <li><b>Double-clicking <code>index.html</code> shows no chapters.</b>
+      Correct. That page needs the server now. <code>npm run dev</code>.</li>
+  </ul>
+
+  <h2>Mark it done</h2>
+  <ol class="steps">
+    <li>On the <code>chapter-8</code> branch, in <code>src/progress.json</code>,
+      change <code>"08": "todo"</code> to <code>"08": "done"</code>. By hand or
+      by asking the AI; if you ask, the diff must be that one line and nothing
+      else.</li>
+    <li><code>npm test</code>. Still green: the test checks the value is a real
+      status, and <code>done</code> is one.</li>
+    <li>Commit and push:
+<pre><code>git add src/progress.json; git commit -m "docs: mark chapter 8 done"; git push</code></pre>
+      <p class="expect">The pull request picks up the new commit and both
+      checks run again.</p></li>
+    <li>At the checkpoint William reviews and approves, and changes the
+      Cloudflare build settings. Then you merge, and watch the deployment: the
+      log now shows <code>npm run build</code> running on Cloudflare's
+      machine, the same lines you saw locally.
+      <p class="expect">Your domain shows chapter 8 ticked, drawn from a JSON
+      file by a script that was compiled on a computer in a data centre. The
+      counter says 9 of 12 done.</p></li>
+    <li>One line in <code>notes/til.md</code>, at the top of the list. It is
+      Markdown now: one <code>-</code> line, the date and chapter in bold, then
+      the sentence.</li>
+  </ol>
+
+  <h2>Pair with William</h2>
+  <div class="checkpoint">
+    <p><strong>Mid-checkpoint, after 8a.</strong> You will: run
+    <code>npm run dev</code> and click to every page; run
+    <code>npm run build</code> and read the <code>dist</code> listing aloud,
+    naming what each file came from. Explain what <code>package-lock.json</code>
+    is for. William will: ask what <code>: Status</code> means in
+    <code>main.ts</code>, and what happens if you type
+    <code>status[id] = "finished"</code> there (try it; read the red
+    underline).</p>
+    <p><strong>End checkpoint, after the PR is open.</strong> William will:
+    review the PR, change the Cloudflare build settings, and then push a
+    branch of his own with a test that fails on purpose. You will: open its
+    red check, find the <code>FAIL:</code> line in the log, find the line in
+    the code that caused it, fix it on his branch, push, and watch it go
+    green. Reading a red CI log is a skill; this is the first time you use
+    it on someone else's mistake.</p>
+  </div>
+
+  <h2>Deliberately not in this chapter</h2>
+  <p class="dim small">No test framework: four scripts and an exit code do the
+  job, and it is what FloatNote does. No ESLint, no Prettier: Biome is both.
+  No framework, still. No Cloudflare tools on your laptop yet; chapter 9.
+  <code>main.ts</code> still keeps the ticks in this browser only, so the
+  "two truths" problem from chapter 7 is still there. That is the next chapter's
+  whole job.</p>
+
+  <nav class="pager" aria-label="Chapter navigation"><a href="07-javascript.html">&larr; 7. JavaScript makes it interactive</a><a href="09-server-side.html">9. Save progress on the server &rarr;</a></nav>
+</div>
+</body>
+</html>

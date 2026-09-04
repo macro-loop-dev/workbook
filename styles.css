@@ -1,0 +1,298 @@
+/* The design tokens. Every colour, radius, type size and shadow on this site
+   resolves here. No raw hex anywhere else: a new look later is one alternate
+   block, not a hunt through every page. (This is the same rule FloatNote's
+   styles.css lives by; you will meet that file in chapter 11.) */
+:root {
+  /* surfaces */
+  --bg: #f7f6f2;
+  --bg-raised: #ffffff;
+  --panel: #ffffff;
+  --border: rgba(20, 24, 40, 0.12);
+  --border-strong: rgba(20, 24, 40, 0.28);
+  --hover: rgba(20, 24, 40, 0.05);
+  --field: rgba(20, 24, 40, 0.04);
+
+  /* ink */
+  --text: #1c1f2b;
+  --text-dim: #5d6478;
+  --accent: #2733c9;
+  --accent-ink: #ffffff;
+  --accent-dim: rgba(39, 51, 201, 0.1);
+  --accent-border: rgba(39, 51, 201, 0.4);
+  --done: #1f8a5b;
+  --done-dim: rgba(31, 138, 91, 0.12);
+  --new: #b9791b;
+  --new-dim: rgba(185, 121, 27, 0.14);
+  --danger: #c0392b;
+  --code-bg: rgba(20, 24, 40, 0.06);
+
+  /* shape */
+  --radius: 10px;
+  --radius-s: 6px;
+  --radius-pill: 99px;
+
+  /* type */
+  --fs-s: 13px;
+  --fs-m: 16px;
+  --fs-l: 19px;
+  --fs-xl: 24px;
+  --fs-title: 34px;
+
+  /* spacing, 4px grid */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-12: 48px;
+
+  --shadow: 0 6px 20px rgba(20, 24, 40, 0.08);
+  --measure: 68ch;
+
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: var(--fs-m);
+  line-height: 1.55;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1b1c21;
+    --bg-raised: #24252c;
+    --panel: #2a2b33;
+    --border: rgba(255, 255, 255, 0.1);
+    --border-strong: rgba(255, 255, 255, 0.24);
+    --hover: rgba(255, 255, 255, 0.07);
+    --field: rgba(255, 255, 255, 0.06);
+    --text: #d8dae2;
+    --text-dim: #9198a6;
+    --accent: #8f97ff;
+    --accent-ink: #12142a;
+    --accent-dim: rgba(143, 151, 255, 0.14);
+    --accent-border: rgba(143, 151, 255, 0.45);
+    --done: #7dd3a8;
+    --done-dim: rgba(125, 211, 168, 0.14);
+    --new: #e0bd80;
+    --new-dim: rgba(224, 189, 128, 0.16);
+    --danger: #e5697a;
+    --code-bg: rgba(255, 255, 255, 0.07);
+    --shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  }
+}
+
+/* ---- base ---------------------------------------------------------------- */
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body {
+  margin: 0;
+  color: var(--text);
+  background: var(--bg);
+}
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:hover { text-decoration-thickness: 2px; }
+h1, h2, h3 { line-height: 1.2; margin: 0 0 var(--sp-3); }
+h1 { font-size: var(--fs-title); letter-spacing: -0.01em; }
+h2 { font-size: var(--fs-xl); margin-top: var(--sp-8); }
+h3 { font-size: var(--fs-l); margin-top: var(--sp-6); }
+p, ul, ol { margin: 0 0 var(--sp-4); }
+code, kbd, pre {
+  font-family: Consolas, "Cascadia Mono", "SF Mono", Menlo, monospace;
+  font-size: 0.92em;
+}
+code, kbd {
+  background: var(--code-bg);
+  padding: 1px var(--sp-1);
+  border-radius: var(--radius-s);
+}
+pre {
+  background: var(--code-bg);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--radius-s);
+  overflow-x: auto;
+  line-height: 1.45;
+}
+pre code { background: none; padding: 0; }
+hr { border: 0; border-top: 1px solid var(--border); margin: var(--sp-8) 0; }
+blockquote {
+  margin: 0 0 var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  border-left: 3px solid var(--accent-border);
+  background: var(--accent-dim);
+  border-radius: 0 var(--radius-s) var(--radius-s) 0;
+}
+blockquote p:last-child { margin-bottom: 0; }
+table { border-collapse: collapse; width: 100%; margin: 0 0 var(--sp-4); font-size: var(--fs-s); }
+th, td { text-align: left; padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--border); vertical-align: top; }
+th { color: var(--text-dim); font-weight: 600; }
+
+/* ---- layout -------------------------------------------------------------- */
+.page {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-4) var(--sp-12);
+}
+.site-nav {
+  display: flex;
+  gap: var(--sp-4);
+  align-items: baseline;
+  padding-bottom: var(--sp-4);
+  margin-bottom: var(--sp-6);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--fs-s);
+}
+.site-nav .brand { font-weight: 700; color: var(--text); text-decoration: none; margin-right: auto; }
+.site-nav a[aria-current="page"] { color: var(--text); font-weight: 600; text-decoration: none; }
+.lede { font-size: var(--fs-l); color: var(--text-dim); }
+.dim { color: var(--text-dim); }
+.small { font-size: var(--fs-s); }
+
+/* ---- chapter list + the progress counter (no JavaScript, on purpose) ----- */
+.chapters {
+  list-style: none;
+  padding: 0;
+  margin: var(--sp-6) 0;
+  counter-reset: done;
+}
+.chapters li {
+  display: grid;
+  grid-template-columns: 22px auto 1fr auto;
+  gap: var(--sp-3);
+  align-items: baseline;
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--border);
+}
+.chapters li::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border-strong);
+  border-radius: 3px;
+  display: inline-block;
+  transform: translateY(1px);
+}
+.chapters li[data-status="done"] { counter-increment: done; }
+.chapters li[data-status="done"]::before {
+  background: var(--done);
+  border-color: var(--done);
+}
+.chapters li[data-status="done"] a { color: var(--text-dim); }
+.chapters .num { color: var(--text-dim); font-variant-numeric: tabular-nums; }
+.chapters .meta { display: flex; gap: var(--sp-2); font-size: var(--fs-s); color: var(--text-dim); white-space: nowrap; }
+.badge {
+  display: inline-block;
+  padding: 0 var(--sp-2);
+  border-radius: var(--radius-pill);
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-size: var(--fs-s);
+  font-weight: 600;
+  line-height: 1.6;
+}
+.badge.done { background: var(--done-dim); color: var(--done); }
+.badge.new { background: var(--new-dim); color: var(--new); }
+.progress::after {
+  content: counter(done) " of 12 done";
+  display: block;
+  margin-top: var(--sp-4);
+  font-weight: 600;
+}
+.progress { counter-reset: none; }
+
+/* ---- chapter pages ------------------------------------------------------- */
+.chapter-header { margin-bottom: var(--sp-8); }
+.chapter-header .kicker {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+  color: var(--text-dim);
+  font-size: var(--fs-s);
+  margin-bottom: var(--sp-2);
+}
+.steps { counter-reset: step; list-style: none; padding: 0; }
+.steps > li {
+  counter-increment: step;
+  position: relative;
+  padding-left: 40px;
+  margin-bottom: var(--sp-4);
+}
+.steps > li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 2px;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
+  font-size: var(--fs-s);
+  display: grid;
+  place-items: center;
+}
+.expect {
+  font-size: var(--fs-s);
+  color: var(--text-dim);
+  margin: var(--sp-1) 0 0;
+}
+.story {
+  padding: var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  box-shadow: var(--shadow);
+}
+.story .when { color: var(--text-dim); font-size: var(--fs-s); }
+.gotchas li { margin-bottom: var(--sp-2); }
+.gotchas b { color: var(--danger); }
+.checkpoint {
+  border-left: 3px solid var(--done);
+  background: var(--done-dim);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: 0 var(--radius-s) var(--radius-s) 0;
+}
+.pager {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  margin-top: var(--sp-12);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--border);
+  font-size: var(--fs-s);
+}
+
+/* ---- library ------------------------------------------------------------- */
+.library { counter-reset: fresh; }
+.library ul { list-style: none; padding: 0; }
+.library li {
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--border);
+}
+.library li .why { display: block; color: var(--text-dim); font-size: var(--fs-s); }
+.library li[data-seen="no"] { counter-increment: fresh; }
+.library li[data-seen="no"] a::after {
+  content: "new";
+  margin-left: var(--sp-2);
+  padding: 0 var(--sp-2);
+  border-radius: var(--radius-pill);
+  background: var(--new-dim);
+  color: var(--new);
+  font-size: var(--fs-s);
+  font-weight: 600;
+  vertical-align: 1px;
+}
+.library li[data-seen="yes"] a { color: var(--text-dim); }
+.library li .added { color: var(--text-dim); font-size: var(--fs-s); margin-left: var(--sp-2); }
+.library-count::after {
+  content: counter(fresh) " new";
+  font-weight: 600;
+}
+
+/* ---- notes --------------------------------------------------------------- */
+.notes-list { list-style: none; padding: 0; }
+.notes-list li { padding: var(--sp-2) 0; border-bottom: 1px solid var(--border); }
+.notes-list .date { color: var(--text-dim); font-size: var(--fs-s); margin-right: var(--sp-3); font-variant-numeric: tabular-nums; }
+.til dt { font-weight: 600; margin-top: var(--sp-4); }
+.til dt .date { color: var(--text-dim); font-weight: 400; font-size: var(--fs-s); margin-right: var(--sp-2); }
+.til dd { margin: var(--sp-1) 0 0; }
