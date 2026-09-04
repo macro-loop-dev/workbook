@@ -220,7 +220,7 @@ git push -u origin chapter-10; gh pr create --fill</code></pre>
       with your domain as the new name (dots are allowed):
 <pre><code>git switch main; git pull
 gh repo rename your-domain.example
-git remote set-url origin https://github.com/macro-loop/your-domain.example.git
+git remote set-url origin https://github.com/macro-loop-dev/your-domain.example.git
 git remote -v</code></pre>
       GitHub forwards the old name, so the Cloudflare connection and William's
       clone keep working. Set the URL anyway: forwarding is a courtesy, not a
